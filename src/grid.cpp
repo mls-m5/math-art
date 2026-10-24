@@ -119,6 +119,9 @@ std::vector<graphics::Vertex> Grid::mesh(double time) const
             vertices.insert(vertices.end(), {
                 {positions[a], {0, 0}}, {positions[b], {1, 0}}, {positions[c], {1, 1}},
                 {positions[a], {0, 0}}, {positions[c], {1, 1}}, {positions[d], {0, 1}}});
+            const float variant = static_cast<float>((x + y) % 2);
+            for (std::size_t i = vertices.size() - 6; i < vertices.size(); ++i)
+                vertices[i].variant = variant;
         }
     }
     return vertices;

@@ -44,7 +44,9 @@ enforced to be even so alternation continues across the last/first boundary. Pre
 and **Esc** to quit.
 
 `wonky_grid` fills the screen with a moving 16-by-10 grid of almost-rectangular
-cells. Each cell has local shader coordinates from 0 to 1: x is red, y is blue.
+cells. Each cell has nested rectangular frames: a black border, a white inner
+frame, and a black center. Neighboring cells invert those colors in a checkerboard
+pattern. Local shader coordinates still run from 0 to 1 within every cell.
 Press **Space** to pause, **R** to randomize the motion, and **Esc** to quit.
 The grid stretches to fill the window on resize.
 
@@ -104,12 +106,16 @@ in wedge contours, avoiding holes at window corners.
 ### Grid field shader
 
 Edit `src/shaders/grid.frag` and rebuild. `vCoordinate` contains the cell-local
-x/y coordinates; `uTime` is available for future shader animation. One shader
+x/y coordinates; `uTime` is available for future shader animation. `vVariant`
+is checkerboard parity, used to invert colors on neighboring cells. Distance to
+the nearest UV edge defines the frames: 0–0.12 is the outer border, 0.12–0.28 is
+the inner frame, and the rest is the center. One shader
 program is reused across all cells, with separate 0-to-1 coordinates per cell.
 Each convex quadrilateral is drawn as two triangles; coordinates are linearly
 interpolated within each triangle. `src/grid.h` stores the CPU-only animated
 lattice and generates the shared-position mesh. Geometry tests check edge
-constraints, convexity, screen coverage, and UV mapping over many time samples.
+constraints, convexity, screen coverage, UV mapping, and checkerboard parity over
+many time samples.
 
 ### Future Emscripten / WebGL support
 

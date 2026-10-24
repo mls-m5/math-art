@@ -101,11 +101,14 @@ void triangles(const std::vector<Vertex> &vertices)
 {
     const auto coordinate = reinterpret_cast<PFNGLVERTEXATTRIB2FPROC>(
         SDL_GL_GetProcAddress("glVertexAttrib2f"));
-    if (!coordinate)
-        throw std::runtime_error("Missing OpenGL function: glVertexAttrib2f");
+    const auto variant = reinterpret_cast<PFNGLVERTEXATTRIB1FPROC>(
+        SDL_GL_GetProcAddress("glVertexAttrib1f"));
+    if (!coordinate || !variant)
+        throw std::runtime_error("Missing OpenGL vertex attribute functions");
     glBegin(GL_TRIANGLES);
     for (const auto &vertex : vertices) {
         coordinate(1, static_cast<float>(vertex.coordinate.x), static_cast<float>(vertex.coordinate.y));
+        variant(2, vertex.variant);
         glVertex2d(vertex.position.x, vertex.position.y);
     }
     glEnd();

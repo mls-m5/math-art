@@ -64,6 +64,10 @@ int main()
             for (std::size_t i = 0; i < mesh.size(); ++i) {
                 require(mesh[i].coordinate.x == uv[i % 6].x &&
                             mesh[i].coordinate.y == uv[i % 6].y, "Cell UV mapping changed");
+                const std::size_t cell = i / 6;
+                const float expectedVariant = static_cast<float>(
+                    (cell % grid.columns() + cell / grid.columns()) % 2);
+                require(mesh[i].variant == expectedVariant, "Checkerboard inversion changed");
                 if (i % 3 == 0)
                     twiceArea += cross(mesh[i].position, mesh[i + 1].position, mesh[i + 2].position);
             }

@@ -76,6 +76,7 @@ Shader::Shader(const char *vertexSource, const char *fragmentSource) : impl_(std
         // glVertex calls. A future WebGL backend can feed it from a vertex buffer.
         impl_->bindAttribute(impl_->program, 0, "aPosition");
         impl_->bindAttribute(impl_->program, 1, "aCoordinate");
+        impl_->bindAttribute(impl_->program, 2, "aVariant");
         impl_->linkProgram(impl_->program);
         GLint success = 0;
         impl_->getProgramiv(impl_->program, GL_LINK_STATUS, &success);
