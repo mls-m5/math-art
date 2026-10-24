@@ -25,6 +25,10 @@ struct Cell
 std::vector<Cell> buildVoronoi(const std::vector<Point> &sites, Bounds bounds);
 
 // A small, overdamped repulsion step. Supply a small fixed dt (e.g. 1/120 s).
-void relaxSites(std::vector<Point> &sites, Bounds bounds, double dt);
+// Optional persistent strengths are positive, finite values in site order.
+// Stronger sites emit stronger, longer-range repulsion, tending to claim larger
+// cells. Empty strengths preserve uniform repulsion (1.0 for every site).
+void relaxSites(std::vector<Point> &sites, Bounds bounds, double dt,
+                const std::vector<double> &strengths = {});
 
 } // namespace blumme

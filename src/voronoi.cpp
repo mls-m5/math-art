@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <utility>
 
 namespace blumme {
@@ -48,20 +49,28 @@ std::vector<Cell> buildVoronoi(const std::vector<Point> &sites, Bounds bounds)
     return cells;
 }
 
-void relaxSites(std::vector<Point> &sites, Bounds bounds, double dt)
+void relaxSites(std::vector<Point> &sites, Bounds bounds, double dt,
+                const std::vector<double> &strengths)
 {
+    if (!strengths.empty() && strengths.size() != sites.size())
+        throw std::invalid_argument("Repulsion strength count must match site count");
+    for (double strength : strengths)
+        if (!std::isfinite(strength) || strength <= 0.0)
+            throw std::invalid_argument("Repulsion strengths must be positive and finite");
     if (sites.empty())
         return;
     const double spacing = std::sqrt(4.0 * bounds.halfWidth * bounds.halfHeight / sites.size());
-    const double radius = spacing * 1.25;
-    const double margin = spacing * 0.35;
+    const auto strengthAt = [&](std::size_t i) { return strengths.empty() ? 1.0 : strengths[i]; };
+    std::vector<double> radii(sites.size());
+    for (std::size_t i = 0; i < sites.size(); ++i)
+        radii[i] = spacing * 1.25 * std::sqrt(strengthAt(i));
     std::vector<Point> forces(sites.size());
     for (std::size_t i = 0; i < sites.size(); ++i) {
         for (std::size_t j = i + 1; j < sites.size(); ++j) {
             double dx = sites[i].x - sites[j].x;
             double dy = sites[i].y - sites[j].y;
             double distance = std::hypot(dx, dy);
-            if (distance >= radius)
+            if (distance >= std::max(radii[i], radii[j]))
                 continue;
             if (distance < 1e-10) {
                 // Deterministically separate even accidentally coincident sites.
@@ -72,14 +81,19 @@ void relaxSites(std::vector<Point> &sites, Bounds bounds, double dt)
                 dx /= distance;
                 dy /= distance;
             }
-            const double strength = (radius - distance) * 2.0;
-            forces[i].x += dx * strength;
-            forces[i].y += dy * strength;
-            forces[j].x -= dx * strength;
-            forces[j].y -= dy * strength;
+            // Each flower emits its own force. Strong flowers displace weaker
+            // neighbors more than those neighbors displace them.
+            const double fromJ = std::max(0.0, radii[j] - distance) * 2.0 * strengthAt(j);
+            const double fromI = std::max(0.0, radii[i] - distance) * 2.0 * strengthAt(i);
+            forces[i].x += dx * fromJ;
+            forces[i].y += dy * fromJ;
+            forces[j].x -= dx * fromI;
+            forces[j].y -= dy * fromI;
         }
     }
     for (std::size_t i = 0; i < sites.size(); ++i) {
+        // Give larger flowers more clearance at the wall as well.
+        const double margin = spacing * 0.35 * std::sqrt(strengthAt(i));
         // Soft wall forces plus a hard boundary keep sites in the domain.
         const double xLimit = std::max(0.0, bounds.halfWidth - margin);
         const double yLimit = std::max(0.0, bounds.halfHeight - margin);

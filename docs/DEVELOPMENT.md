@@ -4,7 +4,13 @@ Build commands below are run from the repository root. The live gallery is at
 [mls-m5.github.io/math-art](https://mls-m5.github.io/math-art/).
 
 Animated C++17 SDL2 / OpenGL flowers built from Voronoi cells. Eighty random
-points repel nearby neighbors until they spread out. Each cell is split into
+points repel nearby neighbors until they spread out. Each flower gets a fixed,
+random repulsion strength between 0.8 and 1.5. Log-uniform samples from 0.4 to
+2.5 are compressed toward 1.0, reducing the original strength variation to one
+third. Stronger flowers
+push neighbors harder and over a longer range, tending to claim larger cells;
+weaker ones fit into smaller spaces. **R** randomizes both positions and strengths.
+Each cell is split into
 fan triangles, then filled as petals with the two outer corners rounded inward.
 Black background shows through the cutouts, between petals, and between flowers.
 Gold disks with black borders mark the generating sites (not necessarily polygon
@@ -228,6 +234,12 @@ polygon to the rectangular `Bounds` using perpendicular-bisector half-planes.
 Inputs must be distinct sites within the domain. Vertices are stored per cell,
 not as a shared edge/vertex graph. `relaxSites` moves sites with short-range
 repulsion and wall forces; the application rebuilds polygons after movement.
+Its optional fourth argument is a positive, finite strength vector in site order;
+omitting it preserves the original uniform-force behavior. Strength scales emitted
+force and its square root scales interaction range and wall clearance. The app
+stores strengths alongside sites, unchanged during simulation. Cell boundaries
+are still ordinary Voronoi bisectors, not weighted/power-diagram boundaries, so
+size is an emergent tendency rather than an exact requested area.
 `src/flower.h` exposes `buildPetal(center, a, b)`, returning a sampled contour
 for each fan triangle. Quadratic Bezier curves cut inward at the outer corners;
 narrowed fan wedges separate petals, and a 6% radial inset separates neighboring

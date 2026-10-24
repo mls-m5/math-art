@@ -3,6 +3,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
+#include <stdexcept>
 #include <random>
 
 namespace {
@@ -106,5 +108,61 @@ int main()
     require(squaredDistance(coincident[0], coincident[1]) > 0.0,
             "Repulsion did not separate coincident sites");
     check(coincident, bounds);
-    std::cout << "Voronoi geometry tests passed\n";
+    // Omitting strengths must remain identical to explicit uniform strengths.
+    auto uniform = sites;
+    auto defaults = sites;
+    blumme::relaxSites(uniform, bounds, 1.0 / 120.0, std::vector<double>(sites.size(), 1.0));
+    blumme::relaxSites(defaults, bounds, 1.0 / 120.0);
+    for (std::size_t i = 0; i < sites.size(); ++i)
+        require(squaredDistance(uniform[i], defaults[i]) == 0.0, "Uniform behavior changed");
+
+    std::vector<blumme::Point> pair{{-0.1, 0.0}, {0.1, 0.0}};
+    blumme::relaxSites(pair, bounds, 1.0 / 120.0, {3.0, 0.3});
+    require(pair[1].x - 0.1 > -0.1 - pair[0].x,
+            "Stronger flower did not displace the weaker flower more");
+    pair = {{-0.6, 0.0}, {0.6, 0.0}};
+    blumme::relaxSites(pair, bounds, 1.0 / 120.0, {1.5, 0.2});
+    require(pair[0].x == -0.6 && pair[1].x > 0.6,
+            "Repulsion range did not depend on source strength");
+
+    for (const auto &invalid : std::vector<std::vector<double>>{
+             {1.0}, {1.0, 0.0}, {1.0, -1.0},
+             {1.0, std::numeric_limits<double>::infinity()},
+             {1.0, std::numeric_limits<double>::quiet_NaN()}}) {
+        bool rejected = false;
+        try { blumme::relaxSites(pair, bounds, 1.0 / 120.0, invalid); }
+        catch (const std::invalid_argument &) { rejected = true; }
+        require(rejected, "Invalid repulsion strengths were accepted");
+    }
+
+    // Mixed strengths should produce larger average cells for strong flowers,
+    // without changing Voronoi containment, coverage, or petal validity.
+    std::uniform_real_distribution<double> logStrength(std::log(0.4), std::log(2.5));
+    std::vector<double> strengths;
+    for (auto &site : sites) {
+        site = {x(random), y(random)};
+        strengths.push_back(std::exp(logStrength(random)));
+    }
+    const auto originalStrengths = strengths;
+    for (int i = 0; i < 2400; ++i)
+        blumme::relaxSites(sites, bounds, 1.0 / 120.0, strengths);
+    require(strengths == originalStrengths, "Simulation modified persistent strengths");
+    check(sites, bounds);
+    double largeArea = 0.0, smallArea = 0.0;
+    int largeCount = 0, smallCount = 0;
+    const auto variedCells = blumme::buildVoronoi(sites, bounds);
+    for (std::size_t i = 0; i < variedCells.size(); ++i) {
+        const auto &polygon = variedCells[i].polygon;
+        double area = 0.0;
+        for (std::size_t j = 0; j < polygon.size(); ++j) {
+            const auto a = polygon[j], b = polygon[(j + 1) % polygon.size()];
+            area += 0.5 * (a.x * b.y - b.x * a.y);
+        }
+        if (strengths[i] > 1.5) { largeArea += area; ++largeCount; }
+        if (strengths[i] < 0.7) { smallArea += area; ++smallCount; }
+    }
+    require(largeCount > 0 && smallCount > 0, "Missing strength groups in size test");
+    require(largeArea / largeCount > smallArea / smallCount * 1.2,
+            "Stronger flowers did not develop larger average cells");
+    std::cout << "Voronoi geometry and variable repulsion tests passed\n";
 }

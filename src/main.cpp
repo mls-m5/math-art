@@ -16,17 +16,23 @@ struct App
     const blumme::Bounds bounds;
     std::mt19937 random{graphics::randomSeed()};
     std::vector<blumme::Point> sites;
+    std::vector<double> repulsionStrengths;
     void randomize() {
         std::uniform_real_distribution<double> x(-bounds.halfWidth * 0.95, bounds.halfWidth * 0.95);
         std::uniform_real_distribution<double> y(-bounds.halfHeight * 0.95, bounds.halfHeight * 0.95);
+        // Compress the original log-uniform variation toward uniform strength.
+        std::uniform_real_distribution<double> strength(std::log(0.4), std::log(2.5));
         sites.clear();
+        repulsionStrengths.clear();
         while (sites.size() < 80) {
             const blumme::Point candidate{x(random), y(random)};
             const bool tooClose = std::any_of(sites.begin(), sites.end(), [&](blumme::Point p) {
                 return std::hypot(p.x - candidate.x, p.y - candidate.y) < 0.001;
             });
-            if (!tooClose)
+            if (!tooClose) {
                 sites.push_back(candidate);
+                repulsionStrengths.push_back(1.0 + (std::exp(strength(random)) - 1.0) / 3.0);
+            }
         }
     }
     std::vector<blumme::Cell> cells;
@@ -71,7 +77,7 @@ struct App
         if (!paused) {
             accumulator += elapsed;
             while (accumulator >= step) {
-                blumme::relaxSites(sites, bounds, step);
+                blumme::relaxSites(sites, bounds, step, repulsionStrengths);
                 accumulator -= step;
                 dirty = true;
             }
