@@ -61,15 +61,15 @@ image, then use `podman create` and `podman cp` to copy
 ### GitHub Pages (when ready)
 
 `.github/workflows/pages.yml` uses Podman to build the same `site` target, generates
-thumbnails, uploads the site artifact, and deploys it. It is **manual-only** for
-now; it does not publish on pushes.
+thumbnails, uploads the site artifact, and deploys it automatically on pushes
+to `main`, including merged pull requests. Manual runs are also supported.
 
 1. Push the repository to GitHub.
 2. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
 3. Under **Actions → Build and publish art gallery**, choose **Run workflow**.
 
-The deployment job's output links to the published site. To publish
-automatically later, add a `push` trigger for your default branch to the workflow.
+The deployment job's output links to the published site. Subsequent pushes or
+pull request merges into `main` automatically rebuild and publish the gallery.
 
 ### Without a container / regenerating thumbnails
 

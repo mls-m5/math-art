@@ -1,7 +1,9 @@
 name: Build and publish art gallery
 
-# Manual for now. Enable a push trigger here when ready for automatic releases.
+# Merging a PR into main also produces a push and deploys the updated gallery.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
