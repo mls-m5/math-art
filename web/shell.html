@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#090b10">
-  <title>Living forms · Art studies</title>
+  <title>Mathematical art · Art studies</title>
   <link rel="icon" href="data:,">
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; }
@@ -13,7 +13,10 @@
     canvas { display: block; width: 100vw !important; height: 100dvh !important; outline: none; touch-action: none; }
     .chrome { position: fixed; z-index: 2; display: flex; align-items: center; gap: .6rem;
       padding: .65rem; border: 1px solid #ffffff24; border-radius: 1rem;
-      background: #11131bd9; backdrop-filter: blur(18px); box-shadow: 0 8px 40px #0004; }
+      background: #11131bd9; backdrop-filter: blur(18px); box-shadow: 0 8px 40px #0004;
+      transition: opacity .3s ease; }
+    .ui-idle .chrome { opacity: 0; pointer-events: none; }
+    .ui-idle canvas { cursor: none; }
     header { top: max(1rem, env(safe-area-inset-top)); left: max(1rem, env(safe-area-inset-left)); }
     nav { bottom: max(1rem, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); white-space: nowrap; }
     a, button { font: inherit; font-size: .85rem; color: inherit; text-decoration: none;
@@ -28,11 +31,12 @@
     #message { color: #b6b6bf; max-width: 35rem; line-height: 1.6; }
     .capture .chrome { display: none; }
     @media (max-width: 520px) { nav { gap: .2rem; } button { padding: .65rem .55rem; font-size: .78rem; } }
+    @media (prefers-reduced-motion: reduce) { .chrome { transition: none; } }
   </style>
 </head>
 <body>
   <canvas id="canvas" width="960" height="640" tabindex="0" aria-label="Interactive generative artwork"></canvas>
-  <header class="chrome"><a href="./index.html" aria-label="Back to gallery">← Gallery</a><span id="name">Living forms</span></header>
+  <header class="chrome"><a href="./index.html" aria-label="Back to gallery">← Gallery</a><span id="name">Mathematical art</span></header>
   <nav class="chrome" aria-label="Artwork controls">
     <button id="pause" aria-pressed="false">Pause</button>
     <button id="randomize">Randomize</button>
@@ -52,13 +56,30 @@
       wonky_grid: ['Woven fields', 'Wave inversion', 119, true]
     };
     const [title, special, specialKey, specialOn] = artworks[id] || ['Art study', 'Options', 0, false];
-    document.title = title + ' · Living forms';
+    document.title = title + ' · Mathematical art';
     document.getElementById('name').textContent = title;
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');
     const message = document.getElementById('message');
+    let idleTimer;
+    function showControls() {
+      document.body.classList.remove('ui-idle');
+      clearTimeout(idleTimer);
+      if (!window.artReady || window.artError) return;
+      idleTimer = setTimeout(() => {
+        // Never hide a control while someone is navigating it by keyboard.
+        if (!document.activeElement?.closest('.chrome'))
+          document.body.classList.add('ui-idle');
+      }, 2500);
+    }
+    window.addEventListener('pointermove', showControls, { passive: true });
+    window.addEventListener('pointerdown', showControls, { passive: true });
+    window.addEventListener('keydown', showControls);
+    document.addEventListener('focusin', showControls);
+    document.addEventListener('focusout', showControls);
     function fail(text) {
       window.artError = true;
+      showControls();
       status.hidden = false;
       status.querySelector('strong').textContent = 'Unable to open this artwork';
       message.textContent = text + ' Try a browser with WebGL enabled, or return to the gallery.';
@@ -73,7 +94,7 @@
     };
     const readyCheck = setInterval(() => {
       if (window.artError) { fail('The rendering engine stopped.'); clearInterval(readyCheck); }
-      else if (window.artReady) { status.hidden = true; clearInterval(readyCheck); }
+      else if (window.artReady) { status.hidden = true; showControls(); clearInterval(readyCheck); }
     }, 100);
     window.addEventListener('error', event => fail(event.message || 'A resource could not be loaded.'));
     window.addEventListener('unhandledrejection', event => fail(String(event.reason)));

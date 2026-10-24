@@ -55,13 +55,24 @@ try {
     await page.waitForFunction(() => document.querySelector('canvas').width === 640 && document.querySelector('canvas').height === 400);
     // Reveal and exercise the real HTML control rather than synthetic DOM keys.
     await page.evaluate(() => document.body.classList.remove('capture'));
+    await page.mouse.move(320, 200);
     const beforeToggle = await page.locator('#special').getAttribute('aria-pressed');
     await page.locator('#special').click();
     if (await page.locator('#special').getAttribute('aria-pressed') === beforeToggle)
       errors.push('App-specific control did not toggle');
+    await page.mouse.move(300, 200);
+    await page.waitForFunction(() => document.body.classList.contains('ui-idle'));
+    await page.mouse.move(301, 200);
+    await page.waitForFunction(() => !document.body.classList.contains('ui-idle'));
+    if (app === apps[0]) {
+      await page.locator('#special').focus();
+      await page.waitForTimeout(2800);
+      if (await page.evaluate(() => document.body.classList.contains('ui-idle')))
+        errors.push('Controls hid while keyboard-focused');
+    }
     if (await page.evaluate(() => !!window.artError)) errors.push('Rendering stopped');
     if (errors.length) throw new Error(`${app}: ${errors.join('\n')}`);
-    console.log(`${app}: WebGL startup, rendering, resize OK; ${(await stat(filename)).size} byte thumbnail`);
+    console.log(`${app}: WebGL rendering, resize, auto-hide controls OK; ${(await stat(filename)).size} byte thumbnail`);
     await page.close();
   }
   // Verify gallery images and links below a repository-style path.
