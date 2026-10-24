@@ -17,6 +17,8 @@ int main(int, char **) try
     std::mt19937 random(std::random_device{}());
     constexpr double radius = 0.22;
     constexpr int rayCount = 64;
+    static_assert(rayCount >= 2 && rayCount % 2 == 0,
+                  "Alternating wedges require a positive even ray count");
     std::vector<double> angles;
     const auto randomize = [&] {
         std::uniform_real_distribution<double> jitter(-0.42, 0.42);
@@ -62,19 +64,16 @@ int main(int, char **) try
         // The pattern repeats every 0.20 / 0.18 seconds. Wrap time to avoid
         // losing floating-point precision during long-running installations.
         shader.setFloat("uTime", static_cast<float>(std::fmod(time, 0.20 / 0.18)));
+        shader.setFloat("uBendAmount", 0.055f);
         for (std::size_t i = 0; i < angles.size(); ++i) {
             const double start = angles[i];
             const double end = i + 1 < angles.size() ? angles[i + 1] : angles[0] + rays::tau;
             shader.setFloat("uAngleStart", static_cast<float>(start));
             shader.setFloat("uAngleSpan", static_cast<float>(end - start));
+            shader.setFloat("uBandOffset", static_cast<float>(i % 2));
             graphics::fillFan(rays::wedgeContour(start, end, view.halfWidth, view.halfHeight), {1, 1, 1});
         }
         shader.stop();
-        for (double angle : angles) {
-            graphics::line({radius * std::cos(angle), radius * std::sin(angle)},
-                           rays::edgePoint(angle, view.halfWidth, view.halfHeight),
-                           {0.35f, 0.40f, 0.48f});
-        }
         graphics::disk({0, 0}, radius, {0.03f, 0.03f, 0.04f});
         graphics::circle({0, 0}, radius, {1.0f, 0.78f, 0.30f});
         window.present();

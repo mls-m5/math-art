@@ -4,6 +4,8 @@ precision mediump float;
 
 varying vec2 vPosition;
 uniform float uTime;       // Seconds; positive time moves bands inward.
+uniform float uBandOffset; // 0 or 1, alternating in angular wedge order.
+uniform float uBendAmount; // Radial half-sine amplitude in world units.
 uniform float uAngleStart; // Start ray of this wedge, radians in [0, 2*pi).
 uniform float uAngleSpan;  // Positive angle to the next ray (including wrap).
 
@@ -22,9 +24,12 @@ vec2 fieldCoordinates(vec2 position)
 void main()
 {
     vec2 field = fieldCoordinates(vPosition);
+    // One half-sine per wedge: zero at both rays, maximum at x = 0.5.
+    // Alternating signs bow neighboring wedges in opposite radial directions.
+    float direction = 1.0 - 2.0 * uBandOffset;
+    float radialDistance = field.y + direction * uBendAmount * sin(0.5 * TAU * field.x);
     // A constant phase moves toward smaller radii as time increases.
     // Each black or white field is 0.10 world units wide, moving at 0.18 units/s.
-    float band = mod(floor((field.y + uTime * 0.18) / 0.10), 2.0);
-    // field.x is available here for future angular patterns.
+    float band = mod(floor((radialDistance + uTime * 0.18) / 0.10) + uBandOffset, 2.0);
     gl_FragColor = vec4(vec3(band), 1.0);
 }

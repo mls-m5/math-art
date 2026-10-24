@@ -33,10 +33,12 @@ geometry libraries or shader loader are needed.
 - **V:** toggle the original Voronoi polygon outlines (off by default).
 - **Esc:** quit.
 
-`rays` displays a central circle with 64 straight rays at jittered random
-angles. The wedges between rays are shader-filled with alternating black and
-white radial bands moving inward. Rays reach the window edges, even after
-resizing. Press **R** for a new arrangement, **Space** to pause/resume the bands,
+`rays` displays a central circle surrounded by 64 wedges at jittered random
+angles. Their boundaries reach the window edges but have no drawn outlines.
+Each wedge has black and white radial bands moving inward; neighboring wedges
+are offset by one band width, making their colors opposite. A half-sine radial
+bend bows alternate wedges inward and outward, with zero offset at their edges. The ray count is
+enforced to be even so alternation continues across the last/first boundary. Press **R** for a new arrangement, **Space** to pause/resume the bands,
 and **Esc** to quit.
 
 Resizing preserves the simulation domain and the circles' aspect ratio.
@@ -69,7 +71,11 @@ The fragment shader's `fieldCoordinates()` returns:
 - **y:** actual distance from the origin in world units.
 
 `uTime` drives inward motion; `uAngleStart`/`uAngleSpan` define each wedge.
-The first pattern uses only y and time; x is ready for angular effects later.
+`uBandOffset` alternates between 0 and 1 in sorted angular order.
+`uBendAmount` controls the radial half-sine amplitude (currently 0.055 world
+units). The effective distance is `y + sign * uBendAmount * sin(pi * x)`, with
+alternating signs, so each wedge has zero bend at its edges and maximum bend
+at its angular midpoint.
 The bands are 0.10 units wide and move inward at 0.18 units/second. Time wraps
 at a full pattern period to maintain precision. Rectangle corners are included
 in wedge contours, avoiding holes at window corners.
