@@ -34,8 +34,10 @@ geometry libraries or shader loader are needed.
 - **Esc:** quit.
 
 `rays` displays a central circle with 64 straight rays at jittered random
-angles. Rays start at the circle and reach the window edges, even after resizing.
-Press **R** for a new arrangement and **Esc** to quit.
+angles. The wedges between rays are shader-filled with alternating black and
+white radial bands moving inward. Rays reach the window edges, even after
+resizing. Press **R** for a new arrangement, **Space** to pause/resume the bands,
+and **Esc** to quit.
 
 Resizing preserves the simulation domain and the circles' aspect ratio.
 
@@ -55,6 +57,32 @@ Use one window at a time. Initialization failures throw `std::runtime_error`.
 
 `graphics/point.h` is a lightweight shared point type; the `graphics_types`
 interface target lets CPU geometry use it without linking SDL or OpenGL.
+
+### Ray field shader
+
+Edit `src/shaders/rays.frag` and rebuild. CMake embeds the GLSL sources, so the
+executable does not depend on runtime shader file paths. `graphics::Shader`
+provides compilation/link diagnostics and float/vec2 uniforms.
+
+The fragment shader's `fieldCoordinates()` returns:
+- **x:** normalized angular position within the current wedge (0 to 1).
+- **y:** actual distance from the origin in world units.
+
+`uTime` drives inward motion; `uAngleStart`/`uAngleSpan` define each wedge.
+The first pattern uses only y and time; x is ready for angular effects later.
+The bands are 0.10 units wide and move inward at 0.18 units/second. Time wraps
+at a full pattern period to maintain precision. Rectangle corners are included
+in wedge contours, avoiding holes at window corners.
+
+### Future Emscripten / WebGL support
+
+The new shaders use explicit position attributes and GLSL ES 1.00-compatible
+syntax (including fragment precision), rather than fixed-function built-ins.
+This is preparation, **not a working web build yet**. The graphics backend still
+needs vertex buffers instead of immediate-mode OpenGL, a GLES/WebGL context,
+and Emscripten CMake/SDL setup. Both applications also need a browser-compatible
+frame callback instead of their blocking loops. These changes can stay behind
+the shared graphics API without changing the flower geometry.
 
 ## Geometry for later use
 

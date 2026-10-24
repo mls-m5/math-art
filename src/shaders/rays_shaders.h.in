@@ -1,0 +1,7 @@
+#pragma once
+
+// Embedded at configure time so the executable has no runtime shader-file paths.
+namespace rays {
+inline constexpr const char *vertexSource = R"GLSL(@RAYS_VERTEX_SOURCE@)GLSL";
+inline constexpr const char *fragmentSource = R"GLSL(@RAYS_FRAGMENT_SOURCE@)GLSL";
+} // namespace rays
