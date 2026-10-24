@@ -12,10 +12,11 @@
 
 int main(int, char **) try
 {
-    graphics::Window window("Rays - R: randomize | Space: pause | Esc: quit");
+    graphics::Window window("Rays - C: center disk | R: randomize | Space: pause | Esc: quit");
     graphics::Shader shader(rays::vertexSource, rays::fragmentSource);
     std::mt19937 random(std::random_device{}());
-    constexpr double radius = 0.11;
+    constexpr float innerRadius = 0.11f;
+    constexpr float bendAmount = 0.055f;
     constexpr int rayCount = 22;
     static_assert(rayCount >= 2 && rayCount % 2 == 0,
                   "Alternating wedges require a positive even ray count");
@@ -36,6 +37,7 @@ int main(int, char **) try
     randomize();
     bool running = true;
     bool paused = false;
+    bool showCenterDisk = true;
     double time = 0.0;
     while (running) {
         SDL_Event event;
@@ -49,6 +51,8 @@ int main(int, char **) try
                     randomize();
                 if (event.key.keysym.sym == SDLK_SPACE)
                     paused = !paused;
+                if (event.key.keysym.sym == SDLK_c)
+                    showCenterDisk = !showCenterDisk;
             }
         }
         if (!running)
@@ -64,7 +68,8 @@ int main(int, char **) try
         // The pattern repeats every 0.20 / 0.18 seconds. Wrap time to avoid
         // losing floating-point precision during long-running installations.
         shader.setFloat("uTime", static_cast<float>(std::fmod(time, 0.20 / 0.18)));
-        shader.setFloat("uBendAmount", 0.055f);
+        shader.setFloat("uBendAmount", bendAmount);
+        shader.setFloat("uInnerRadius", innerRadius);
         for (std::size_t i = 0; i < angles.size(); ++i) {
             const double start = angles[i];
             const double end = i + 1 < angles.size() ? angles[i + 1] : angles[0] + rays::tau;
@@ -74,7 +79,12 @@ int main(int, char **) try
             graphics::fillFan(rays::wedgeContour(start, end, view.halfWidth, view.halfHeight), {1, 1, 1});
         }
         shader.stop();
-        graphics::disk({0, 0}, radius, {0.03f, 0.03f, 0.04f});
+        if (showCenterDisk) {
+            // Cover the largest outward cutoff, with a little extra room for
+            // the disk's polygonal approximation and rasterization.
+            const double radius = (innerRadius + std::abs(bendAmount)) * 1.02;
+            graphics::disk({0, 0}, radius, {0, 0, 0});
+        }
         window.present();
     }
     return 0;

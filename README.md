@@ -33,8 +33,9 @@ geometry libraries or shader loader are needed.
 - **V:** toggle the original Voronoi polygon outlines (off by default).
 - **Esc:** quit.
 
-`rays` displays a central circle surrounded by 22 wedges at jittered random
-angles. Their boundaries reach the window edges but have no drawn outlines.
+`rays` displays a black center disk surrounded by 22 wedges at jittered random
+angles. Press **C** to toggle the disk (on by default), revealing or hiding the
+sine-shaped shader cutoff underneath. Their boundaries reach the window edges but have no drawn outlines.
 Each wedge has black and white radial bands moving inward; neighboring wedges
 are offset by one band width, making their colors opposite. A half-sine radial
 bend bows alternate wedges inward and outward, with zero offset at their edges. The ray count is
@@ -75,7 +76,10 @@ The fragment shader's `fieldCoordinates()` returns:
 `uBendAmount` controls the radial half-sine amplitude (currently 0.055 world
 units). The effective distance is `y + sign * uBendAmount * sin(pi * x)`, with
 alternating signs, so each wedge has zero bend at its edges and maximum bend
-at its angular midpoint.
+at its angular midpoint. `uInnerRadius` (0.11) cuts out the center using this
+same warped distance, producing a stationary wavy boundary. The bands keep
+moving into that boundary. By default, a black disk covers the entire cutoff;
+its radius is `(innerRadius + abs(bendAmount)) * 1.02` to include a small margin.
 The bands are 0.10 units wide and move inward at 0.18 units/second. Time wraps
 at a full pattern period to maintain precision. Rectangle corners are included
 in wedge contours, avoiding holes at window corners.
