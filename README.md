@@ -1,9 +1,10 @@
 # blumme
 
-An animated C++17 SDL2 / OpenGL Voronoi diagram. Eighty random generating
-points repel nearby neighbors until they spread out. Cyan polygon outlines
-mark the area closest to each point; gold circles mark the generating sites
-(not necessarily the geometric centroids of their polygons).
+Animated C++17 SDL2 / OpenGL flowers built from Voronoi cells. Eighty random
+points repel nearby neighbors until they spread out. Each cell is split into
+fan triangles, then filled as petals with the two outer corners rounded inward.
+Black background shows through the cutouts and small gaps between flowers.
+Gold circles mark the generating sites (not necessarily polygon centroids).
 
 ## Build and run
 
@@ -25,6 +26,7 @@ geometry libraries or shader loader are needed.
 
 - **R:** generate a new random arrangement.
 - **Space:** pause/resume repulsion.
+- **V:** toggle the original Voronoi polygon outlines (off by default).
 - **Esc:** quit.
 
 Resizing preserves the simulation domain and the circles' aspect ratio.
@@ -37,4 +39,9 @@ polygon to the rectangular `Bounds` using perpendicular-bisector half-planes.
 Inputs must be distinct sites within the domain. Vertices are stored per cell,
 not as a shared edge/vertex graph. `relaxSites` moves sites with short-range
 repulsion and wall forces; the application rebuilds polygons after movement.
-The geometry library is independent of SDL/OpenGL and has CTest coverage.
+`src/flower.h` exposes `buildPetal(center, a, b)`, returning a sampled contour
+for each fan triangle. Quadratic Bezier curves cut inward at the outer corners;
+a 6% radial inset separates neighboring flowers. The original cell geometry is
+unchanged. The contour starts at the center and can be drawn as a triangle fan.
+The geometry library is independent of SDL/OpenGL and has CTest coverage,
+including petal containment and reduced-area checks.

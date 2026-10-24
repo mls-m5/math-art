@@ -1,4 +1,4 @@
-#include "voronoi.h"
+#include "flower.h"
 
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -20,7 +20,7 @@ int main(int, char **)
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     SDL_Window *window = SDL_CreateWindow(
-        "Blumme - Voronoi cells | R: randomize | Space: pause | Esc: quit",
+        "Blumme - flowers | V: polygons | R: randomize | Space: pause | Esc: quit",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 960, 640,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!window) {
@@ -58,6 +58,7 @@ int main(int, char **)
     auto cells = blumme::buildVoronoi(sites, bounds);
     bool running = true;
     bool paused = false;
+    bool showPolygons = false;
     double accumulator = 0.0;
     constexpr double step = 1.0 / 120.0;
     Uint64 previous = SDL_GetPerformanceCounter();
@@ -77,6 +78,9 @@ int main(int, char **)
                 case SDLK_SPACE:
                     paused = !paused;
                     accumulator = 0.0;
+                    break;
+                case SDLK_v:
+                    showPolygons = !showPolygons;
                     break;
                 case SDLK_r:
                     randomize();
@@ -116,7 +120,7 @@ int main(int, char **)
                                            (bounds.halfWidth + 0.08) / aspect);
         const double viewWidth = viewHeight * aspect;
         glViewport(0, 0, width, height);
-        glClearColor(0.035f, 0.045f, 0.075f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
@@ -124,12 +128,35 @@ int main(int, char **)
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        glColor3f(0.45f, 0.75f, 0.85f);
-        for (const auto &cell : cells) {
-            glBegin(GL_LINE_LOOP);
-            for (const auto &vertex : cell.polygon)
-                glVertex2d(vertex.x, vertex.y);
-            glEnd();
+        // Each Voronoi fan triangle becomes one rounded, filled petal.
+        constexpr float palette[][3] = {
+            {0.92f, 0.35f, 0.52f}, {0.68f, 0.42f, 0.88f},
+            {0.95f, 0.56f, 0.36f}, {0.38f, 0.68f, 0.88f},
+            {0.91f, 0.46f, 0.70f}, {0.42f, 0.77f, 0.65f}};
+        for (std::size_t i = 0; i < cells.size(); ++i) {
+            const auto &cell = cells[i];
+            const auto &color = palette[i % 6];
+            for (std::size_t j = 0; j < cell.polygon.size(); ++j) {
+                const auto petal = blumme::buildPetal(
+                    cell.center, cell.polygon[j], cell.polygon[(j + 1) % cell.polygon.size()]);
+                // A slight alternating shade makes the individual petals readable.
+                const float shade = j % 2 == 0 ? 1.0f : 0.88f;
+                glColor3f(color[0] * shade, color[1] * shade, color[2] * shade);
+                glBegin(GL_TRIANGLE_FAN);
+                for (const auto &vertex : petal)
+                    glVertex2d(vertex.x, vertex.y);
+                glEnd();
+            }
+        }
+
+        if (showPolygons) {
+            glColor3f(0.45f, 0.75f, 0.85f);
+            for (const auto &cell : cells) {
+                glBegin(GL_LINE_LOOP);
+                for (const auto &vertex : cell.polygon)
+                    glVertex2d(vertex.x, vertex.y);
+                glEnd();
+            }
         }
 
         glColor3f(1.0f, 0.78f, 0.30f);

@@ -1,4 +1,4 @@
-#include "voronoi.h"
+#include "flower.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -42,6 +42,30 @@ void check(const std::vector<blumme::Point> &sites, blumme::Bounds bounds)
                         (b.y - a.y) * (cell.center.x - a.x) >= -1e-9,
                     "Center is outside polygon");
             twiceArea += a.x * b.y - b.x * a.y;
+
+            const auto petal = blumme::buildPetal(cell.center, a, b);
+            require(petal.size() > 4, "Petal curve has too few samples");
+            require(squaredDistance(petal.front(), cell.center) == 0.0,
+                    "Petal lost its center tip");
+            const auto cross = [](blumme::Point p, blumme::Point q, blumme::Point r) {
+                return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+            };
+            double petalArea = 0.0;
+            for (std::size_t n = 0; n < petal.size(); ++n) {
+                const auto p = petal[n];
+                const auto q = petal[(n + 1) % petal.size()];
+                require(std::isfinite(p.x) && std::isfinite(p.y), "Nonfinite petal vertex");
+                require(cross(cell.center, a, p) >= -1e-9 &&
+                            cross(a, b, p) >= -1e-9 && cross(b, cell.center, p) >= -1e-9,
+                        "Petal escapes its fan triangle");
+                petalArea += cross(cell.center, p, q);
+            }
+            const double triangleArea = cross(cell.center, a, b);
+            require(petalArea >= -1e-9 && petalArea <= triangleArea + 1e-9,
+                    "Invalid rounded petal area");
+            if (triangleArea > 1e-9)
+                require(petalArea > 0.0 && petalArea < triangleArea * 0.9,
+                        "Petal did not leave background visible");
         }
         require(twiceArea > 0.0, "Polygon is not counterclockwise");
         totalArea += twiceArea * 0.5;
