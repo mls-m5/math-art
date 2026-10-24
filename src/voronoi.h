@@ -1,14 +1,11 @@
 #pragma once
 
+#include "graphics/point.h"
 #include <vector>
 
 namespace blumme {
 
-struct Point
-{
-    double x = 0.0;
-    double y = 0.0;
-};
+using Point = graphics::Point;
 
 struct Bounds
 {

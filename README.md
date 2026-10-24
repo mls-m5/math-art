@@ -1,4 +1,4 @@
-# blumme
+# blumme and rays
 
 Animated C++17 SDL2 / OpenGL flowers built from Voronoi cells. Eighty random
 points repel nearby neighbors until they spread out. Each cell is split into
@@ -18,19 +18,43 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 ./build/blumme
+./build/rays
 ```
 
 Run in a graphical desktop session with OpenGL 2.1 support. No additional
 geometry libraries or shader loader are needed.
 
-## Controls
+## Programs and controls
+
+`blumme` retains the animated Voronoi flowers:
 
 - **R:** generate a new random arrangement.
 - **Space:** pause/resume repulsion.
 - **V:** toggle the original Voronoi polygon outlines (off by default).
 - **Esc:** quit.
 
+`rays` displays a central circle with 64 straight rays at jittered random
+angles. Rays start at the circle and reach the window edges, even after resizing.
+Press **R** for a new arrangement and **Esc** to quit.
+
 Resizing preserves the simulation domain and the circles' aspect ratio.
+
+## Reusable graphics library
+
+The `graphics` CMake target lives in `lib/graphics/`. It handles SDL/OpenGL
+initialization and cleanup, event polling, frame timing, high-DPI viewports,
+aspect-preserving projection, clearing, and presentation. Drawing helpers provide
+lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
+Both programs use this library; neither contains direct OpenGL calls.
+
+For another program, link `graphics` (and `SDL2::SDL2main` where available),
+include `graphics/graphics.h`, and create a `graphics::Window`. Poll its events,
+call `beginFrame` with minimum world-space half-extents, draw, then `present`.
+`view()` exposes the actual visible half-extents for edge-aligned artwork.
+Use one window at a time. Initialization failures throw `std::runtime_error`.
+
+`graphics/point.h` is a lightweight shared point type; the `graphics_types`
+interface target lets CPU geometry use it without linking SDL or OpenGL.
 
 ## Geometry for later use
 
