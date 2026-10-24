@@ -3,8 +3,9 @@
 Animated C++17 SDL2 / OpenGL flowers built from Voronoi cells. Eighty random
 points repel nearby neighbors until they spread out. Each cell is split into
 fan triangles, then filled as petals with the two outer corners rounded inward.
-Black background shows through the cutouts and small gaps between flowers.
-Gold circles mark the generating sites (not necessarily polygon centroids).
+Black background shows through the cutouts, between petals, and between flowers.
+Gold disks with black borders mark the generating sites (not necessarily polygon
+centroids).
 
 ## Build and run
 
@@ -41,7 +42,8 @@ not as a shared edge/vertex graph. `relaxSites` moves sites with short-range
 repulsion and wall forces; the application rebuilds polygons after movement.
 `src/flower.h` exposes `buildPetal(center, a, b)`, returning a sampled contour
 for each fan triangle. Quadratic Bezier curves cut inward at the outer corners;
-a 6% radial inset separates neighboring flowers. The original cell geometry is
+narrowed fan wedges separate petals, and a 6% radial inset separates neighboring
+flowers. The original cell geometry is
 unchanged. The contour starts at the center and can be drawn as a triangle fan.
 The geometry library is independent of SDL/OpenGL and has CTest coverage,
 including petal containment and reduced-area checks.

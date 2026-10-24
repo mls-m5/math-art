@@ -61,6 +61,12 @@ void check(const std::vector<blumme::Point> &sites, blumme::Bounds bounds)
                 petalArea += cross(cell.center, p, q);
             }
             const double triangleArea = cross(cell.center, a, b);
+            if (triangleArea > 1e-9) {
+                for (std::size_t n = 1; n < petal.size(); ++n)
+                    require(cross(cell.center, a, petal[n]) > 0.0 &&
+                                cross(b, cell.center, petal[n]) > 0.0,
+                            "Petal touches radial sides instead of leaving a gap");
+            }
             require(petalArea >= -1e-9 && petalArea <= triangleArea + 1e-9,
                     "Invalid rounded petal area");
             if (triangleArea > 1e-9)

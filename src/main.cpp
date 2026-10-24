@@ -159,17 +159,24 @@ int main(int, char **)
             }
         }
 
-        glColor3f(1.0f, 0.78f, 0.30f);
         constexpr double pi = 3.14159265358979323846;
-        constexpr double radius = 0.018;
-        for (const auto &cell : cells) {
-            glBegin(GL_LINE_LOOP);
-            for (int i = 0; i < 24; ++i) {
-                const double angle = 2.0 * pi * i / 24;
-                glVertex2d(cell.center.x + radius * std::cos(angle),
-                           cell.center.y + radius * std::sin(angle));
+        const auto drawDisk = [&](blumme::Point center, double radius) {
+            glBegin(GL_TRIANGLE_FAN);
+            glVertex2d(center.x, center.y);
+            for (int i = 0; i <= 32; ++i) {
+                const double angle = 2.0 * pi * i / 32;
+                glVertex2d(center.x + radius * std::cos(angle),
+                           center.y + radius * std::sin(angle));
             }
             glEnd();
+        };
+        for (const auto &cell : cells) {
+            // Two filled disks make a consistent black border without relying
+            // on driver-dependent support for thick OpenGL lines.
+            glColor3f(0.0f, 0.0f, 0.0f);
+            drawDisk(cell.center, 0.026);
+            glColor3f(1.0f, 0.78f, 0.30f);
+            drawDisk(cell.center, 0.018);
         }
 
         SDL_GL_SwapWindow(window);

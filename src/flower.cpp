@@ -20,6 +20,11 @@ void appendCurve(std::vector<Point> &contour, Point start, Point control, Point 
 
 std::vector<Point> buildPetal(Point center, Point a, Point b)
 {
+    // Narrow the fan wedge to expose black along both radial sides.
+    // Keep the center fixed so all petals still belong to the same flower.
+    const Point originalA = a;
+    a = mix(a, b, 0.07);
+    b = mix(b, originalA, 0.07);
     a = mix(center, a, 0.94);
     b = mix(center, b, 0.94);
     constexpr double rounding = 0.42;
