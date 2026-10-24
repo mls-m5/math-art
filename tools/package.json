@@ -1,0 +1,10 @@
+{
+  "name": "living-forms-web-tools",
+  "private": true,
+  "type": "module",
+  "scripts": { "thumbnails": "node thumbnails.mjs" },
+  "dependencies": {
+    "playwright": "1.56.1",
+    "pngjs": "7.0.0"
+  }
+}

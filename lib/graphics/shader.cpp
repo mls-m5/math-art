@@ -8,6 +8,7 @@
 
 namespace graphics {
 namespace {
+const Shader *activeShader = nullptr;
 template <typename T> T load(const char *name)
 {
     const auto function = reinterpret_cast<T>(SDL_GL_GetProcAddress(name));
@@ -36,6 +37,7 @@ struct Shader::Impl
     PFNGLGETUNIFORMLOCATIONPROC uniformLocation = load<PFNGLGETUNIFORMLOCATIONPROC>("glGetUniformLocation");
     PFNGLUNIFORM1FPROC uniform1f = load<PFNGLUNIFORM1FPROC>("glUniform1f");
     PFNGLUNIFORM2FPROC uniform2f = load<PFNGLUNIFORM2FPROC>("glUniform2f");
+    PFNGLUNIFORM3FPROC uniform3f = load<PFNGLUNIFORM3FPROC>("glUniform3f");
     GLuint program = 0;
 
     ~Impl()
@@ -72,8 +74,7 @@ Shader::Shader(const char *vertexSource, const char *fragmentSource) : impl_(std
         impl_->program = impl_->createProgram();
         impl_->attachShader(impl_->program, vertex);
         impl_->attachShader(impl_->program, fragment);
-        // Attribute 0 is also supplied by the current compatibility renderer's
-        // glVertex calls. A future WebGL backend can feed it from a vertex buffer.
+        // Shared attribute layout for the vertex-buffer renderer.
         impl_->bindAttribute(impl_->program, 0, "aPosition");
         impl_->bindAttribute(impl_->program, 1, "aCoordinate");
         impl_->bindAttribute(impl_->program, 2, "aVariant");
@@ -97,9 +98,22 @@ Shader::Shader(const char *vertexSource, const char *fragmentSource) : impl_(std
     impl_->deleteShader(fragment);
 }
 
-Shader::~Shader() = default;
-void Shader::use() const { impl_->useProgram(impl_->program); }
-void Shader::stop() const { impl_->useProgram(0); }
+Shader::~Shader()
+{
+    if (activeShader == this)
+        stop();
+}
+void Shader::use() const
+{
+    impl_->useProgram(impl_->program);
+    activeShader = this;
+}
+void Shader::stop() const
+{
+    impl_->useProgram(0);
+    activeShader = nullptr;
+}
+const Shader *Shader::active() { return activeShader; }
 void Shader::setFloat(const char *name, float value) const
 {
     impl_->uniform1f(impl_->uniformLocation(impl_->program, name), value);
@@ -107,5 +121,9 @@ void Shader::setFloat(const char *name, float value) const
 void Shader::setVec2(const char *name, float x, float y) const
 {
     impl_->uniform2f(impl_->uniformLocation(impl_->program, name), x, y);
+}
+void Shader::setVec3(const char *name, float x, float y, float z) const
+{
+    impl_->uniform3f(impl_->uniformLocation(impl_->program, name), x, y, z);
 }
 } // namespace graphics

@@ -1,6 +1,9 @@
 
 build/
+build-*/
 bin/
+dist/
+tools/node_modules/
 
 
 # qtcreator project files

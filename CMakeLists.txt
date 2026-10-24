@@ -1,9 +1,25 @@
 cmake_minimum_required(VERSION 3.23)
 project(blumme LANGUAGES CXX)
 
-enable_testing()
-find_package(SDL2 REQUIRED)
-find_package(OpenGL REQUIRED)
+if(EMSCRIPTEN)
+    if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/site)
+    endif()
+    set(BUILD_TESTING OFF CACHE BOOL "Build native geometry tests")
+    add_library(SDL2::SDL2 INTERFACE IMPORTED)
+    set_target_properties(SDL2::SDL2 PROPERTIES
+        INTERFACE_COMPILE_OPTIONS "-sUSE_SDL=2"
+        INTERFACE_LINK_OPTIONS "-sUSE_SDL=2")
+    add_library(OpenGL::GL INTERFACE IMPORTED)
+    add_compile_options(-fexceptions)
+    add_link_options(-fexceptions -sALLOW_MEMORY_GROWTH=1
+        -sGL_ENABLE_GET_PROC_ADDRESS=1 -sMIN_WEBGL_VERSION=1 -sMAX_WEBGL_VERSION=1
+        -sENVIRONMENT=web)
+else()
+    find_package(SDL2 REQUIRED)
+    find_package(OpenGL REQUIRED)
+endif()
+include(CTest)
 add_subdirectory(lib)
 
 add_library(voronoi src/voronoi.cpp src/flower.cpp)
@@ -40,7 +56,24 @@ foreach(app IN ITEMS blumme rays wonky_grid)
         target_link_libraries(${app} PRIVATE SDL2::SDL2main)
     endif()
     target_link_libraries(${app} PRIVATE graphics)
+    if(EMSCRIPTEN)
+        set_target_properties(${app} PROPERTIES SUFFIX ".html")
+        target_link_options(${app} PRIVATE
+            "--shell-file=${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html")
+        set_property(TARGET ${app} APPEND PROPERTY LINK_DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/web/shell.html)
+    endif()
 endforeach()
 target_link_libraries(blumme PRIVATE voronoi)
 
-add_subdirectory(test)
+if(BUILD_TESTING)
+    add_subdirectory(test)
+endif()
+
+if(EMSCRIPTEN)
+    # Relative links work at both / and /repository/ on GitHub Pages.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        web/index.html web/gallery.css web/.nojekyll)
+    file(COPY web/index.html web/gallery.css web/.nojekyll
+        DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+endif()

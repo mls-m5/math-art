@@ -1,0 +1,23 @@
+:root { color-scheme: dark; font-family: system-ui, -apple-system, sans-serif; background: #0d1015; color: #eeeae2; }
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 1440px; padding: clamp(1.5rem, 5vw, 5rem); background: radial-gradient(ellipse at 12% 0%, #202329 0%, transparent 55%); min-height: 100vh; }
+header { padding: 2rem 0 3rem; }
+.eyebrow { text-transform: uppercase; letter-spacing: .18em; font-size: .7rem; color: #b0a79b; }
+h1 { font-size: clamp(3.2rem, 8vw, 7rem); font-weight: 450; letter-spacing: -.065em; margin: 1.1rem 0; line-height: 1; }
+h1 span { color: #d1a579; }
+.intro { color: #a9a7a2; line-height: 1.8; font-size: 1.05rem; }
+.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.6rem; }
+.card { color: inherit; text-decoration: none; border: 1px solid #ffffff13; border-radius: 1.2rem; overflow: hidden; background: #15181d; transition: transform .25s, border-color .25s; }
+.card:hover { transform: translateY(-7px); border-color: #d1a57980; }
+.card:focus-visible { outline: 2px solid #d1a579; outline-offset: 5px; }
+.preview { aspect-ratio: 3 / 2; overflow: hidden; background: #050609; }
+.preview img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .6s; }
+.card:hover img { transform: scale(1.035); }
+.caption { display: flex; gap: .9rem; align-items: baseline; padding: 1.5rem 1.2rem; }
+.number { font-size: .7rem; color: #b4a28c; }
+h2 { font-weight: 500; font-size: 1.15rem; margin: 0 0 .4rem; letter-spacing: -.02em; }
+.caption p { font-size: .8rem; color: #999ba1; margin: 0; line-height: 1.5; }
+.arrow { margin-left: auto; color: #d1a579; }
+footer { display: flex; justify-content: space-between; gap: 1rem; margin-top: 3rem; border-top: 1px solid #ffffff15; padding: 1.5rem 0; color: #85878f; font-size: .75rem; line-height: 1.6; }
+@media (max-width: 900px) { .gallery { grid-template-columns: 1fr; max-width: 680px; } header { padding-top: 1rem; } footer { flex-direction: column; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }

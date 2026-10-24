@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#090b10">
+  <title>Living forms · Art studies</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #000; color: #f4f3ef; overflow: hidden; }
+    canvas { display: block; width: 100vw !important; height: 100dvh !important; outline: none; touch-action: none; }
+    .chrome { position: fixed; z-index: 2; display: flex; align-items: center; gap: .6rem;
+      padding: .65rem; border: 1px solid #ffffff24; border-radius: 1rem;
+      background: #11131bd9; backdrop-filter: blur(18px); box-shadow: 0 8px 40px #0004; }
+    header { top: max(1rem, env(safe-area-inset-top)); left: max(1rem, env(safe-area-inset-left)); }
+    nav { bottom: max(1rem, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); white-space: nowrap; }
+    a, button { font: inherit; font-size: .85rem; color: inherit; text-decoration: none;
+      border: 0; border-radius: .6rem; background: #ffffff0d; padding: .65rem .85rem; cursor: pointer; }
+    a:hover, button:hover { background: #ffffff24; }
+    a:focus-visible, button:focus-visible { outline: 2px solid #e9b77b; outline-offset: 2px; }
+    #name { font-weight: 600; padding: 0 .5rem; }
+    #status { position: fixed; inset: 0; display: grid; place-content: center; text-align: center;
+      background: #090b10; padding: 2rem; z-index: 3; }
+    #status[hidden] { display: none; }
+    #status strong { font-size: 1.6rem; font-weight: 500; }
+    #message { color: #b6b6bf; max-width: 35rem; line-height: 1.6; }
+    .capture .chrome { display: none; }
+    @media (max-width: 520px) { nav { gap: .2rem; } button { padding: .65rem .55rem; font-size: .78rem; } }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="960" height="640" tabindex="0" aria-label="Interactive generative artwork"></canvas>
+  <header class="chrome"><a href="./index.html" aria-label="Back to gallery">← Gallery</a><span id="name">Living forms</span></header>
+  <nav class="chrome" aria-label="Artwork controls">
+    <button id="pause" aria-pressed="false">Pause</button>
+    <button id="randomize">Randomize</button>
+    <button id="special">Options</button>
+    <button id="fullscreen">Fullscreen</button>
+  </nav>
+  <div id="status" role="status"><strong>Opening the canvas</strong><p id="message">Loading artwork…</p></div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    window.artCapture = params.get('capture') === '1';
+    if (window.artCapture) document.body.classList.add('capture');
+    if (params.has('seed') && /^\d+$/.test(params.get('seed'))) window.artSeed = Number(params.get('seed')) >>> 0;
+    const id = location.pathname.split('/').pop().replace(/\.html$/, '');
+    const artworks = {
+      blumme: ['Blumme', 'Polygons', 118, false],
+      rays: ['Radial rhythms', 'Center disk', 99, true],
+      wonky_grid: ['Woven fields', 'Wave inversion', 119, true]
+    };
+    const [title, special, specialKey, specialOn] = artworks[id] || ['Art study', 'Options', 0, false];
+    document.title = title + ' · Living forms';
+    document.getElementById('name').textContent = title;
+    const canvas = document.getElementById('canvas');
+    const status = document.getElementById('status');
+    const message = document.getElementById('message');
+    function fail(text) {
+      window.artError = true;
+      status.hidden = false;
+      status.querySelector('strong').textContent = 'Unable to open this artwork';
+      message.textContent = text + ' Try a browser with WebGL enabled, or return to the gallery.';
+    }
+    var Module = {
+      canvas,
+      print: text => console.log(text),
+      printErr: text => console.error(text),
+      setStatus: text => { if (!window.artReady) message.textContent = text || 'Preparing the canvas…'; },
+      onAbort: text => fail(String(text)),
+      onRuntimeInitialized: () => canvas.focus()
+    };
+    const readyCheck = setInterval(() => {
+      if (window.artError) { fail('The rendering engine stopped.'); clearInterval(readyCheck); }
+      else if (window.artReady) { status.hidden = true; clearInterval(readyCheck); }
+    }, 100);
+    window.addEventListener('error', event => fail(event.message || 'A resource could not be loaded.'));
+    window.addEventListener('unhandledrejection', event => fail(String(event.reason)));
+    function key(code) {
+      if (window.artReady && !window.artError) Module._art_key(code);
+      canvas.focus();
+    }
+    const pause = document.getElementById('pause');
+    pause.onclick = () => {
+      if (!window.artReady) return;
+      const on = pause.getAttribute('aria-pressed') !== 'true';
+      pause.setAttribute('aria-pressed', String(on));
+      pause.textContent = on ? 'Resume' : 'Pause';
+      key(32);
+    };
+    document.getElementById('randomize').onclick = () => key(114);
+    const option = document.getElementById('special');
+    option.textContent = special;
+    option.setAttribute('aria-pressed', String(specialOn));
+    option.onclick = () => {
+      if (!window.artReady) return;
+      option.setAttribute('aria-pressed', String(option.getAttribute('aria-pressed') !== 'true'));
+      key(specialKey);
+    };
+    document.getElementById('fullscreen').onclick = async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else await document.documentElement.requestFullscreen();
+      } catch (error) { console.warn('Fullscreen unavailable', error); }
+      canvas.focus();
+    };
+    // Keep button labels in sync when using the original keyboard shortcuts.
+    window.addEventListener('keydown', event => {
+      if (event.repeat || !window.artReady || event.target instanceof HTMLButtonElement) return;
+      if (event.code === 'Space') {
+        const on = pause.getAttribute('aria-pressed') !== 'true';
+        pause.setAttribute('aria-pressed', String(on));
+        pause.textContent = on ? 'Resume' : 'Pause';
+      }
+      if (event.key.toLowerCase().charCodeAt(0) === specialKey)
+        option.setAttribute('aria-pressed', String(option.getAttribute('aria-pressed') !== 'true'));
+    });
+    canvas.addEventListener('pointerdown', () => canvas.focus());
+    canvas.addEventListener('webglcontextlost', event => { event.preventDefault(); fail('The graphics context was lost. Reload this page.'); });
+  </script>
+  {{{ SCRIPT }}}
+</body>
+</html>

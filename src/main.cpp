@@ -8,14 +8,15 @@
 #include <random>
 #include <vector>
 
-int main(int, char **) try
+namespace {
+struct App
 {
-    graphics::Window window(
-        "Blumme - flowers | V: polygons | R: randomize | Space: pause | Esc: quit");
+    graphics::Window window{
+        "Blumme - flowers | V: polygons | R: randomize | Space: pause | Esc: quit"};
     const blumme::Bounds bounds;
-    std::mt19937 random(std::random_device{}());
+    std::mt19937 random{graphics::randomSeed()};
     std::vector<blumme::Point> sites;
-    const auto randomize = [&] {
+    void randomize() {
         std::uniform_real_distribution<double> x(-bounds.halfWidth * 0.95, bounds.halfWidth * 0.95);
         std::uniform_real_distribution<double> y(-bounds.halfHeight * 0.95, bounds.halfHeight * 0.95);
         sites.clear();
@@ -27,16 +28,16 @@ int main(int, char **) try
             if (!tooClose)
                 sites.push_back(candidate);
         }
-    };
-    randomize();
-    auto cells = blumme::buildVoronoi(sites, bounds);
+    }
+    std::vector<blumme::Cell> cells;
+    App() { randomize(); cells = blumme::buildVoronoi(sites, bounds); }
     bool running = true;
     bool paused = false;
     bool showPolygons = false;
     double accumulator = 0.0;
-    constexpr double step = 1.0 / 120.0;
+    static constexpr double step = 1.0 / 120.0;
 
-    while (running) {
+    bool frame() {
         bool dirty = false;
         SDL_Event event;
         while (window.pollEvent(event)) {
@@ -64,7 +65,7 @@ int main(int, char **) try
             }
         }
         if (!running)
-            break;
+            return false;
 
         const double elapsed = window.elapsed();
         if (!paused) {
@@ -78,7 +79,7 @@ int main(int, char **) try
         if (dirty)
             cells = blumme::buildVoronoi(sites, bounds);
         if (!window.beginFrame({bounds.halfWidth + 0.08, bounds.halfHeight + 0.08}))
-            continue;
+            return true;
 
         constexpr graphics::Color palette[] = {
             {0.92f, 0.35f, 0.52f}, {0.68f, 0.42f, 0.88f},
@@ -103,7 +104,15 @@ int main(int, char **) try
             graphics::disk(cell.center, 0.018, {1.0f, 0.78f, 0.30f});
         }
         window.present();
+        return true;
     }
+};
+} // namespace
+
+int main(int, char **) try
+{
+    auto app = std::make_shared<App>();
+    graphics::run([app] { return app->frame(); });
     return 0;
 }
 catch (const std::exception &error)

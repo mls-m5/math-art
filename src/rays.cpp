@@ -10,18 +10,19 @@
 #include <random>
 #include <vector>
 
-int main(int, char **) try
+namespace {
+struct App
 {
-    graphics::Window window("Rays - C: center disk | R: randomize | Space: pause | Esc: quit");
-    graphics::Shader shader(rays::vertexSource, rays::fragmentSource);
-    std::mt19937 random(std::random_device{}());
-    constexpr float innerRadius = 0.11f;
-    constexpr float bendAmount = 0.055f;
-    constexpr int rayCount = 22;
+    graphics::Window window{"Rays - C: center disk | R: randomize | Space: pause | Esc: quit"};
+    graphics::Shader shader{rays::vertexSource, rays::fragmentSource};
+    std::mt19937 random{graphics::randomSeed()};
+    static constexpr float innerRadius = 0.11f;
+    static constexpr float bendAmount = 0.055f;
+    static constexpr int rayCount = 22;
     static_assert(rayCount >= 2 && rayCount % 2 == 0,
                   "Alternating wedges require a positive even ray count");
     std::vector<double> angles;
-    const auto randomize = [&] {
+    void randomize() {
         std::uniform_real_distribution<double> jitter(-0.42, 0.42);
         std::uniform_real_distribution<double> rotation(0.0, rays::tau);
         const double offset = rotation(random);
@@ -33,13 +34,13 @@ int main(int, char **) try
             angles.push_back(angle);
         }
         std::sort(angles.begin(), angles.end());
-    };
-    randomize();
+    }
+    App() { randomize(); }
     bool running = true;
     bool paused = false;
     bool showCenterDisk = true;
     double time = 0.0;
-    while (running) {
+    bool frame() {
         SDL_Event event;
         while (window.pollEvent(event)) {
             if (event.type == SDL_QUIT)
@@ -56,12 +57,12 @@ int main(int, char **) try
             }
         }
         if (!running)
-            break;
+            return false;
         const double elapsed = window.elapsed();
         if (!paused)
             time += elapsed;
         if (!window.beginFrame({1.4, 0.9}))
-            continue;
+            return true;
         const auto view = window.view();
         shader.use();
         shader.setVec2("uView", static_cast<float>(view.halfWidth), static_cast<float>(view.halfHeight));
@@ -86,7 +87,15 @@ int main(int, char **) try
             graphics::disk({0, 0}, radius, {0, 0, 0});
         }
         window.present();
+        return true;
     }
+};
+} // namespace
+
+int main(int, char **) try
+{
+    auto app = std::make_shared<App>();
+    graphics::run([app] { return app->frame(); });
     return 0;
 }
 catch (const std::exception &error)

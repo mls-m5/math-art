@@ -9,30 +9,31 @@
 #include <random>
 #include <string>
 
-int main(int, char **) try
+namespace {
+struct App
 {
-    graphics::Window window("Wonky grid - W: waves | R: randomize | Space: pause | Esc: quit");
-    graphics::Shader shader(wonky::vertexSource, wonky::fragmentSource);
-    std::mt19937 random(std::random_device{}());
-    constexpr int columns = 16;
-    constexpr int rows = 10;
-    wonky::Grid grid(columns, rows, random());
+    graphics::Window window{"Wonky grid - W: waves | R: randomize | Space: pause | Esc: quit"};
+    graphics::Shader shader{wonky::vertexSource, wonky::fragmentSource};
+    std::mt19937 random{graphics::randomSeed()};
+    static constexpr int columns = 16;
+    static constexpr int rows = 10;
+    wonky::Grid grid{columns, rows, static_cast<std::uint32_t>(random())};
     struct Wave { float amplitude, frequency, phase; };
     std::array<Wave, 6> waves;
-    const auto randomizeWaves = [&] {
+    void randomizeWaves() {
         // Keep curves ordered and inside the screen, even with overtones.
         std::uniform_real_distribution<float> amplitude(0.025f, 0.045f);
         std::uniform_real_distribution<float> frequency(0.7f, 1.4f);
         std::uniform_real_distribution<float> phase(0.0f, 6.2831853f);
         for (auto &wave : waves)
             wave = {amplitude(random), frequency(random), phase(random)};
-    };
-    randomizeWaves();
+    }
+    App() { randomizeWaves(); }
     bool running = true;
     bool paused = false;
     bool showWaves = true;
     double time = 0.0;
-    while (running) {
+    bool frame() {
         SDL_Event event;
         while (window.pollEvent(event)) {
             if (event.type == SDL_QUIT)
@@ -59,12 +60,12 @@ int main(int, char **) try
             }
         }
         if (!running)
-            break;
+            return false;
         const double elapsed = window.elapsed();
         if (!paused)
             time += elapsed;
         if (!window.beginFrame({1.4, 0.9}))
-            continue;
+            return true;
         const auto view = window.view();
         auto mesh = grid.mesh(time);
         for (auto &vertex : mesh) {
@@ -84,7 +85,15 @@ int main(int, char **) try
         graphics::triangles(mesh);
         shader.stop();
         window.present();
+        return true;
     }
+};
+} // namespace
+
+int main(int, char **) try
+{
+    auto app = std::make_shared<App>();
+    graphics::run([app] { return app->frame(); });
     return 0;
 }
 catch (const std::exception &error)

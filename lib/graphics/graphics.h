@@ -2,6 +2,9 @@
 
 #include "point.h"
 #include <SDL.h>
+#include <functional>
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace graphics {
@@ -16,7 +19,8 @@ struct View
     double halfWidth, halfHeight;
 };
 
-// Owns SDL video and an OpenGL 2.1 context. Use one Window at a time.
+// Owns SDL video and a desktop OpenGL 2.1 or WebGL 1 context.
+// Use one Window at a time.
 // Construction throws std::runtime_error on failure; destruction cleans up.
 class Window
 {
@@ -40,7 +44,15 @@ private:
     bool vsync_ = false;
     Uint64 previous_ = 0;
     View view_{};
+    struct Renderer;
+    std::unique_ptr<Renderer> renderer_;
 };
+
+// Calls frame until it returns false. Browser callbacks retain their captures;
+// capture application state by value (e.g. shared_ptr), never stack references.
+void run(std::function<bool()> frame);
+// Browser ?seed=... can make captures reproducible; native uses random_device.
+std::uint32_t randomSeed();
 
 // Contours must be convex and ordered. No closing duplicate is required.
 void fillFan(const std::vector<Point> &contour, Color color);

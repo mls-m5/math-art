@@ -25,6 +25,75 @@ ctest --test-dir build --output-on-failure
 Run in a graphical desktop session with OpenGL 2.1 support. No additional
 geometry libraries or shader loader are needed.
 
+## Web build with Podman
+
+The Podman build compiles all three apps with **Emscripten 3.1.74**, runs them
+in headless Chromium, and generates real PNG thumbnails for the gallery.
+Only Podman is needed on the host (the `Dockerfile` is Podman-compatible):
+
+```sh
+podman build --layers -t localhost/living-forms .
+podman run --rm -p 8080:80 localhost/living-forms
+```
+
+Open **http://localhost:8080**. The index is a responsive gallery; each artwork
+uses the same `web/shell.html`: edge-to-edge canvas, gallery link, pause,
+randomize, app-specific toggle, and fullscreen controls. The original keyboard
+shortcuts still work; browser Escape exits fullscreen instead of quitting.
+The first build downloads the SDK and browser images and can take a few minutes.
+
+### Export a static site
+
+```sh
+podman build --layers --target site --output type=local,dest=dist .
+python3 -m http.server 8080 --directory dist
+```
+
+`dist/` contains `index.html`, CSS, the three `.html`/`.js`/`.wasm` applications,
+and `thumbnails/*.png`. Deploy this directory unchanged to a static host.
+Relative URLs support GitHub Pages repository subpaths. No server-side code,
+threads, cross-origin isolation headers, CDN assets, or runtime npm packages
+are required. Serve over HTTP(S), not `file://`. The export command requires
+local Podman on Linux; for a remote Podman machine, build the normal server
+image, then use `podman create` and `podman cp` to copy
+`/usr/share/nginx/html/.` into `dist/` without starting the container.
+
+### GitHub Pages (when ready)
+
+`.github/workflows/pages.yml` uses Podman to build the same `site` target, generates
+thumbnails, uploads the site artifact, and deploys it. It is **manual-only** for
+now; it does not publish on pushes.
+
+1. Push the repository to GitHub.
+2. Under **Settings → Pages → Build and deployment**, choose **GitHub Actions**.
+3. Under **Actions → Build and publish art gallery**, choose **Run workflow**.
+
+The deployment job's output links to the published site. To publish
+automatically later, add a `push` trigger for your default branch to the workflow.
+
+### Without a container / regenerating thumbnails
+
+With Emscripten 3.1.74 activated, CMake 3.23+, and Node 18+:
+
+```sh
+emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
+cmake --build build-web --parallel 2
+cd tools
+npm ci
+npx playwright install --with-deps chromium
+cd ..
+node tools/thumbnails.mjs build-web/site
+python3 -m http.server 8080 --directory build-web/site
+```
+
+The thumbnail tool starts its own temporary HTTP server, opens each compiled
+app with `?capture=1&seed=42`, advances exactly 180 fixed simulation steps,
+pauses, and captures the canvas without UI. It also checks JavaScript errors,
+nonblank rendering, gallery links, and canvas resizing. Output images are
+720×480, reproducible for a given browser/toolchain. They are generated build
+artifacts, not placeholders or hand-maintained screenshots. Playwright's npm
+and container image versions are pinned together. Geometry tests remain native.
+
 ## Programs and controls
 
 `blumme` retains the animated Voronoi flowers:
@@ -84,6 +153,9 @@ include `graphics/graphics.h`, and create a `graphics::Window`. Poll its events,
 call `beginFrame` with minimum world-space half-extents, draw, then `present`.
 `view()` exposes the actual visible half-extents for edge-aligned artwork.
 Use one window at a time. Initialization failures throw `std::runtime_error`.
+`graphics::run` drives native loops or browser requestAnimationFrame callbacks.
+Capture application state by value (the examples use `shared_ptr<App>`), never
+references to stack variables that disappear when browser `main()` returns.
 
 `graphics/point.h` is a lightweight shared point type; the `graphics_types`
 interface target lets CPU geometry use it without linking SDL or OpenGL.
@@ -134,15 +206,14 @@ lattice and generates the shared-position mesh. Geometry tests check edge
 constraints, convexity, screen coverage, UV mapping, and checkerboard parity over
 many time samples.
 
-### Future Emscripten / WebGL support
+### Desktop and WebGL backend
 
-The new shaders use explicit position attributes and GLSL ES 1.00-compatible
-syntax (including fragment precision), rather than fixed-function built-ins.
-This is preparation, **not a working web build yet**. The graphics backend still
-needs vertex buffers instead of immediate-mode OpenGL, a GLES/WebGL context,
-and Emscripten CMake/SDL setup. All applications also need a browser-compatible
-frame callback instead of their blocking loops. These changes can stay behind
-the shared graphics API without changing the flower geometry.
+The shared renderer uses vertex buffers and explicit shader attributes on both
+desktop OpenGL and WebGL 1; there is no immediate-mode emulation. All shaders
+use GLSL ES 1.00-compatible syntax. Browser canvases track viewport size and
+pixel density (capped at 2×). The shared frame loop retains application state
+across browser callbacks and preserves the native applications' controls and
+simulation behavior.
 
 ## Geometry for later use
 
