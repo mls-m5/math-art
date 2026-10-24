@@ -5,6 +5,10 @@ project(blumme)
 enable_testing()
 add_subdirectory(lib)
 
+add_library(voronoi src/voronoi.cpp)
+target_include_directories(voronoi PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(voronoi PUBLIC cxx_std_17)
+
 add_executable(
     blumme
     src/main.cpp
@@ -24,7 +28,7 @@ if(TARGET SDL2::SDL2main)
     target_link_libraries(blumme PRIVATE SDL2::SDL2main)
 endif()
 
-target_link_libraries(blumme PRIVATE SDL2::SDL2 OpenGL::GL)
+target_link_libraries(blumme PRIVATE voronoi SDL2::SDL2 OpenGL::GL)
 
 add_subdirectory(test)
 
