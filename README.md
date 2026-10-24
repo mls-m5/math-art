@@ -33,7 +33,7 @@ geometry libraries or shader loader are needed.
 - **V:** toggle the original Voronoi polygon outlines (off by default).
 - **Esc:** quit.
 
-`rays` displays a central circle surrounded by 64 wedges at jittered random
+`rays` displays a central circle surrounded by 22 wedges at jittered random
 angles. Their boundaries reach the window edges but have no drawn outlines.
 Each wedge has black and white radial bands moving inward; neighboring wedges
 are offset by one band width, making their colors opposite. A half-sine radial

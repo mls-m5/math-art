@@ -15,8 +15,8 @@ int main(int, char **) try
     graphics::Window window("Rays - R: randomize | Space: pause | Esc: quit");
     graphics::Shader shader(rays::vertexSource, rays::fragmentSource);
     std::mt19937 random(std::random_device{}());
-    constexpr double radius = 0.22;
-    constexpr int rayCount = 64;
+    constexpr double radius = 0.11;
+    constexpr int rayCount = 22;
     static_assert(rayCount >= 2 && rayCount % 2 == 0,
                   "Alternating wedges require a positive even ray count");
     std::vector<double> angles;
@@ -75,7 +75,6 @@ int main(int, char **) try
         }
         shader.stop();
         graphics::disk({0, 0}, radius, {0.03f, 0.03f, 0.04f});
-        graphics::circle({0, 0}, radius, {1.0f, 0.78f, 0.30f});
         window.present();
     }
     return 0;
