@@ -44,6 +44,9 @@ private:
 
 // Contours must be convex and ordered. No closing duplicate is required.
 void fillFan(const std::vector<Point> &contour, Color color);
+// Draw independent triangles with local coordinates at shader attribute 1.
+// Use with Shader (aPosition at 0, aCoordinate at 1).
+void triangles(const std::vector<Vertex> &vertices);
 void outline(const std::vector<Point> &contour, Color color);
 void line(Point start, Point end, Color color);
 void disk(Point center, double radius, Color color);

@@ -97,6 +97,20 @@ void fillFan(const std::vector<Point> &contour, Color color)
     glEnd();
 }
 
+void triangles(const std::vector<Vertex> &vertices)
+{
+    const auto coordinate = reinterpret_cast<PFNGLVERTEXATTRIB2FPROC>(
+        SDL_GL_GetProcAddress("glVertexAttrib2f"));
+    if (!coordinate)
+        throw std::runtime_error("Missing OpenGL function: glVertexAttrib2f");
+    glBegin(GL_TRIANGLES);
+    for (const auto &vertex : vertices) {
+        coordinate(1, static_cast<float>(vertex.coordinate.x), static_cast<float>(vertex.coordinate.y));
+        glVertex2d(vertex.position.x, vertex.position.y);
+    }
+    glEnd();
+}
+
 void outline(const std::vector<Point> &contour, Color color)
 {
     setColor(color);

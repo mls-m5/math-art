@@ -1,0 +1,6 @@
+#pragma once
+
+namespace wonky {
+inline constexpr const char *vertexSource = R"GLSL(@GRID_VERTEX_SOURCE@)GLSL";
+inline constexpr const char *fragmentSource = R"GLSL(@GRID_FRAGMENT_SOURCE@)GLSL";
+} // namespace wonky
