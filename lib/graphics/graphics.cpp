@@ -26,11 +26,26 @@ Window::Window(const char *title, int width, int height)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    window_ = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
-                                                 SDL_WINDOW_ALLOW_HIGHDPI);
-    if (window_)
-        context_ = SDL_GL_CreateContext(window_);
+    const auto create = [&] {
+        window_ = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                  width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
+                                                     SDL_WINDOW_ALLOW_HIGHDPI);
+        if (window_)
+            context_ = SDL_GL_CreateContext(window_);
+        return window_ && context_;
+    };
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+    if (!create()) {
+        // Some drivers/display formats cannot provide multisampling. Retry
+        // without it rather than making antialiasing a startup requirement.
+        if (window_)
+            SDL_DestroyWindow(window_);
+        window_ = nullptr;
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 0);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
+        create();
+    }
     if (!window_ || !context_) {
         const std::string error = std::string("Graphics initialization failed: ") + SDL_GetError();
         if (window_)
@@ -38,6 +53,7 @@ Window::Window(const char *title, int width, int height)
         SDL_Quit();
         throw std::runtime_error(error);
     }
+    glEnable(GL_MULTISAMPLE);
     vsync_ = SDL_GL_SetSwapInterval(1) == 0;
     previous_ = SDL_GetPerformanceCounter();
 }

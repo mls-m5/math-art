@@ -47,7 +47,13 @@ and **Esc** to quit.
 cells. Each cell has nested rectangular frames: a black border, a white inner
 frame, and a black center. Neighboring cells invert those colors in a checkerboard
 pattern. Local shader coordinates still run from 0 to 1 within every cell.
-Press **Space** to pause, **R** to randomize the motion, and **Esc** to quit.
+Three vertical and three horizontal sine curves with overtones divide the
+screen into additional inversion regions. A pixel flips color if the total
+number of vertical curves to its left and horizontal curves above it is odd.
+The curves have randomized amplitudes, frequencies, and phases, and move slowly.
+Their boundaries are antialiased; the curves themselves are not drawn as lines.
+Press **W** to toggle wave inversion (on by default), **Space** to pause all motion,
+**R** to randomize the grid and curves, and **Esc** to quit.
 The grid stretches to fill the window on resize.
 
 Vertices share positions between cells, so there are no gaps. Their offsets
@@ -70,6 +76,8 @@ aspect-preserving projection, clearing, and presentation. Drawing helpers provid
 lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
 All three programs use this library without direct OpenGL calls. The triangle
 mesh helper also supplies per-vertex local coordinates to shaders.
+Windows request 4× MSAA for geometry edges, automatically retrying without
+multisampling if unavailable.
 
 For another program, link `graphics` (and `SDL2::SDL2main` where available),
 include `graphics/graphics.h`, and create a `graphics::Window`. Poll its events,
@@ -109,8 +117,17 @@ Edit `src/shaders/grid.frag` and rebuild. `vCoordinate` contains the cell-local
 x/y coordinates; `uTime` is available for future shader animation. `vVariant`
 is checkerboard parity, used to invert colors on neighboring cells. Distance to
 the nearest UV edge defines the frames: 0–0.12 is the outer border, 0.12–0.28 is
-the inner frame, and the rest is the center. One shader
+the inner frame, and the rest is the center. Frame edges use `fwidth` and
+`smoothstep` for approximately one-pixel antialiasing as cells deform. WebGL 1
+uses `OES_standard_derivatives` when available, with a fixed-width fallback.
+One shader
 program is reused across all cells, with separate 0-to-1 coordinates per cell.
+`vScreen` supplies whole-screen coordinates for the six inversion curves.
+`uWaveAmplitude`, `uWaveFrequency`, and `uWavePhase` arrays configure their
+fundamentals and two overtones. Curves are centered at 25%, 50%, and 75% on each
+axis; bounded amplitudes keep them ordered and inside the screen. Crossing
+parity is combined with checkerboard parity, so two inversions cancel.
+
 Each convex quadrilateral is drawn as two triangles; coordinates are linearly
 interpolated within each triangle. `src/grid.h` stores the CPU-only animated
 lattice and generates the shared-position mesh. Geometry tests check edge
