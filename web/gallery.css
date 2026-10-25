@@ -6,7 +6,7 @@ header { padding: 2rem 0 3rem; }
 h1 { font-size: clamp(3.2rem, 8vw, 7rem); font-weight: 450; letter-spacing: -.065em; margin: 1.1rem 0; line-height: 1; }
 h1 span { color: #d1a579; }
 .intro { color: #a9a7a2; line-height: 1.8; font-size: 1.05rem; }
-.gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.6rem; }
+.gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6rem; }
 .card { color: inherit; text-decoration: none; border: 1px solid #ffffff13; border-radius: 1.2rem; overflow: hidden; background: #15181d; transition: transform .25s, border-color .25s; }
 .card:hover { transform: translateY(-7px); border-color: #d1a57980; }
 .card:focus-visible { outline: 2px solid #d1a579; outline-offset: 5px; }

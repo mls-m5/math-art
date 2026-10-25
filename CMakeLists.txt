@@ -27,6 +27,21 @@ target_include_directories(voronoi PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(voronoi PUBLIC cxx_std_17)
 target_link_libraries(voronoi PUBLIC graphics_types)
 
+include(FetchContent)
+if(POLICY CMP0135)
+    cmake_policy(SET CMP0135 NEW)
+endif()
+set(GLM_BUILD_TESTS OFF CACHE BOOL "Build GLM tests")
+set(GLM_BUILD_LIBRARY OFF CACHE BOOL "Use header-only GLM")
+FetchContent_Declare(glm
+    URL https://codeload.github.com/g-truc/glm/tar.gz/refs/tags/1.0.1
+    URL_HASH SHA256=9f3174561fd26904b23f0db5e560971cbf9b3cbda0b280f04d5c379d03bf234c)
+FetchContent_MakeAvailable(glm)
+add_library(space_model src/space.cpp)
+target_include_directories(space_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(space_model PUBLIC cxx_std_17)
+target_link_libraries(space_model PUBLIC glm::glm graphics_types)
+
 add_executable(blumme src/main.cpp)
 # Embed editable GLSL files and reconfigure whenever they change.
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
@@ -50,7 +65,16 @@ add_executable(wonky_grid src/wonky_grid.cpp)
 target_include_directories(wonky_grid PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(wonky_grid PRIVATE grid_geometry)
 
-foreach(app IN ITEMS blumme rays wonky_grid)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    src/shaders/space.vert src/shaders/space.frag)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/space.vert SPACE_VERTEX_SOURCE)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/space.frag SPACE_FRAGMENT_SOURCE)
+configure_file(src/shaders/space_shaders.h.in generated/space_shaders.h @ONLY)
+add_executable(space_travel src/space_travel.cpp)
+target_include_directories(space_travel PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_link_libraries(space_travel PRIVATE space_model)
+
+foreach(app IN ITEMS blumme rays wonky_grid space_travel)
     # SDL2main supplies the platform entry point where SDL requires it.
     if(TARGET SDL2::SDL2main)
         target_link_libraries(${app} PRIVATE SDL2::SDL2main)

@@ -5,7 +5,7 @@ import { readFile, mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(process.argv[2] || 'dist');
-const apps = ['blumme', 'rays', 'wonky_grid'];
+const apps = ['blumme', 'rays', 'wonky_grid', 'space_travel'];
 const mount = '/art-studies'; // Exercise GitHub Pages-style subpath hosting.
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.css': 'text/css', '.png': 'image/png' };
 const server = createServer(async (request, response) => {

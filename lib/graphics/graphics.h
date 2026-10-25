@@ -36,6 +36,7 @@ public:
     // Returns false while the drawable is zero-sized.
     bool beginFrame(View minimum, Color background = {0, 0, 0});
     View view() const { return view_; }
+    Point drawableSize() const;
     void present();
 
 private:
@@ -57,8 +58,11 @@ std::uint32_t randomSeed();
 // Contours must be convex and ordered. No closing duplicate is required.
 void fillFan(const std::vector<Point> &contour, Color color);
 // Draw independent triangles with local coordinates and an optional variant.
-// Use with Shader (aPosition at 0, aCoordinate at 1, aVariant at 2).
+// Use with Shader (aPosition at 0, aCoordinate at 1, aVariant at 2,
+// aParameters at 3).
 void triangles(const std::vector<Vertex> &vertices);
+// Additive blending is useful for luminous art. Reset to false after drawing.
+void additiveBlending(bool enabled);
 void outline(const std::vector<Point> &contour, Color color);
 void line(Point start, Point end, Color color);
 void disk(Point center, double radius, Color color);

@@ -196,6 +196,13 @@ bool Window::beginFrame(View minimum, Color background)
     return true;
 }
 
+Point Window::drawableSize() const
+{
+    int width, height;
+    SDL_GL_GetDrawableSize(window_, &width, &height);
+    return {static_cast<double>(width), static_cast<double>(height)};
+}
+
 void Window::present()
 {
     SDL_GL_SwapWindow(window_);
@@ -254,17 +261,19 @@ void draw(const std::vector<Vertex> &vertices, GLenum mode, Color color)
                     static_cast<float>(currentView.halfHeight));
     shader->setVec3("uColor", color.r, color.g, color.b);
     std::vector<float> data;
-    data.reserve(vertices.size() * 5);
+    data.reserve(vertices.size() * 7);
     for (const auto &vertex : vertices) {
         data.insert(data.end(), {static_cast<float>(vertex.position.x), static_cast<float>(vertex.position.y),
-            static_cast<float>(vertex.coordinate.x), static_cast<float>(vertex.coordinate.y), vertex.variant});
+            static_cast<float>(vertex.coordinate.x), static_cast<float>(vertex.coordinate.y), vertex.variant,
+            static_cast<float>(vertex.parameters.x), static_cast<float>(vertex.parameters.y)});
     }
     bindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     bufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(data.size() * sizeof(float)), data.data(), GL_STREAM_DRAW);
-    for (GLuint i = 0; i < 3; ++i) {
+    constexpr GLuint offsets[]{0, 2, 4, 5};
+    for (GLuint i = 0; i < 4; ++i) {
         enable(i);
-        attribute(i, i == 2 ? 1 : 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                  reinterpret_cast<const void *>(static_cast<std::uintptr_t>(i * 2 * sizeof(float))));
+        attribute(i, i == 2 ? 1 : 2, GL_FLOAT, GL_FALSE, 7 * sizeof(float),
+                  reinterpret_cast<const void *>(static_cast<std::uintptr_t>(offsets[i] * sizeof(float))));
     }
     glDrawArrays(mode, 0, static_cast<GLsizei>(vertices.size()));
     if (useDefault)
@@ -295,6 +304,15 @@ void fillFan(const std::vector<Point> &contour, Color color)
     draw(contourVertices(contour), GL_TRIANGLE_FAN, color);
 }
 void triangles(const std::vector<Vertex> &vertices) { draw(vertices, GL_TRIANGLES, {1, 1, 1}); }
+void additiveBlending(bool enabled)
+{
+    if (enabled) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_ONE, GL_ONE);
+    } else {
+        glDisable(GL_BLEND);
+    }
+}
 void outline(const std::vector<Point> &contour, Color color) { draw(contourVertices(contour), GL_LINE_LOOP, color); }
 void line(Point start, Point end, Color color) { draw({{start, {0, 0}}, {end, {0, 0}}}, GL_LINES, color); }
 void disk(Point center, double radius, Color color)

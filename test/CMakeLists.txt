@@ -11,3 +11,7 @@ add_test(NAME rays_geometry COMMAND rays_test)
 add_executable(grid_test grid_test.cpp)
 target_link_libraries(grid_test PRIVATE grid_geometry)
 add_test(NAME grid_geometry COMMAND grid_test)
+
+add_executable(space_test space_test.cpp)
+target_link_libraries(space_test PRIVATE space_model)
+add_test(NAME space_geometry COMMAND space_test)

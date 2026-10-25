@@ -1,0 +1,6 @@
+#pragma once
+
+namespace spaceart {
+inline constexpr const char *vertexSource = R"GLSL(@SPACE_VERTEX_SOURCE@)GLSL";
+inline constexpr const char *fragmentSource = R"GLSL(@SPACE_FRAGMENT_SOURCE@)GLSL";
+} // namespace spaceart

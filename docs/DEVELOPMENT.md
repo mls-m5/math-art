@@ -29,14 +29,16 @@ ctest --test-dir build --output-on-failure
 ./build/blumme
 ./build/rays
 ./build/wonky_grid
+./build/space_travel
 ```
 
-Run in a graphical desktop session with OpenGL 2.1 support. No additional
-geometry libraries or shader loader are needed.
+Run in a graphical desktop session with OpenGL 2.1 support. CMake FetchContent
+fetches header-only GLM 1.0.1 for the space scene (pinned archive with SHA-256),
+so the first configure needs network access. No manual GLM install is needed.
 
 ## Web build with Podman
 
-The Podman build compiles all three apps with **Emscripten 3.1.74**, runs them
+The Podman build compiles all four apps with **Emscripten 3.1.74**, runs them
 in headless Chromium, and generates real PNG thumbnails for the gallery.
 Only Podman is needed on the host (the `Dockerfile` is Podman-compatible):
 
@@ -60,7 +62,7 @@ podman build --layers --target site --output type=local,dest=dist .
 python3 -m http.server 8080 --directory dist
 ```
 
-`dist/` contains `index.html`, CSS, the three `.html`/`.js`/`.wasm` applications,
+`dist/` contains `index.html`, CSS, the four `.html`/`.js`/`.wasm` applications,
 and `thumbnails/*.png`. Deploy this directory unchanged to a static host.
 Relative URLs support GitHub Pages repository subpaths. No server-side code,
 threads, cross-origin isolation headers, CDN assets, or runtime npm packages
@@ -148,14 +150,35 @@ enough to keep every rendered cell convex, with no folds or overlaps.
 
 Resizing preserves the flower/ray domains and the circles' aspect ratio.
 
+`space_travel` flies a real 3D camera through 700 stationary world-space stars.
+GLM `lookAt` and perspective matrices project current and previous-exposure
+positions; apparent trails are not a 2D radial simulation. Only the final capsule
+expansion is screen-space, so the ends remain round. An antialiased capsule SDF
+shader and additive blending draw all trails in one batch.
+
+- **Space:** pause/resume flight.
+- **B / Boost button:** toggle between 56 and 150 world units/second.
+- **R:** regenerate the starfield and reset the camera.
+- **Esc:** quit on desktop (exit fullscreen in the browser).
+
+The camera follows a fixed normalized 3D direction. Stars fade in from 220 to
+140 units ahead and recycle after passing 12 units behind the camera. Recycled
+stars spawn invisibly 220–235 units ahead. Perspective, near-plane/screen clipping,
+and a small near-camera fade prevent flashes as stars pass. `src/space.h` exposes
+the CPU-only camera, starfield, projection, and capsule-mesh code. Tests cover
+true camera translation, perspective expansion, distance fade, recycling, and
+finite capsule geometry, including portrait viewports.
+
 ## Reusable graphics library
 
 The `graphics` CMake target lives in `lib/graphics/`. It handles SDL/OpenGL
 initialization and cleanup, event polling, frame timing, high-DPI viewports,
 aspect-preserving projection, clearing, and presentation. Drawing helpers provide
 lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
-All three programs use this library without direct OpenGL calls. The triangle
-mesh helper also supplies per-vertex local coordinates to shaders.
+All four programs use this library without direct OpenGL calls. The triangle
+mesh helper also supplies per-vertex local coordinates, a scalar variant, and
+two extra parameters to shaders. `drawableSize()` exposes real pixel dimensions;
+`additiveBlending()` supports luminous effects without app-level OpenGL calls.
 Windows request 4× MSAA for geometry edges, automatically retrying without
 multisampling if unavailable.
 
