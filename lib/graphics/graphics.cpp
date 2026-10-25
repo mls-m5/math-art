@@ -92,6 +92,7 @@ Window::Window(const char *title, int width, int height)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 #endif
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     const auto create = [&] {
         window_ = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE |
@@ -128,8 +129,8 @@ Window::Window(const char *title, int width, int height)
 #ifndef __EMSCRIPTEN__
     glEnable(GL_MULTISAMPLE);
 #endif
-    vsync_ = SDL_GL_SetSwapInterval(1) == 0;
-    previous_ = SDL_GetPerformanceCounter();
+    SDL_GL_SetSwapInterval(1);
+    previous_ = lastPresentation_ = SDL_GetPerformanceCounter();
 }
 
 Window::~Window()
@@ -171,7 +172,7 @@ bool Window::pollEvent(SDL_Event &event)
     return false;
 }
 
-double Window::elapsed()
+double Window::elapsed(double maximum)
 {
     const Uint64 now = SDL_GetPerformanceCounter();
     const double seconds = static_cast<double>(now - previous_) / SDL_GetPerformanceFrequency();
@@ -180,7 +181,7 @@ double Window::elapsed()
     if (EM_ASM_INT({ return !!window.artCapture; }))
         return 1.0 / 60.0;
 #endif
-    return std::min(seconds, 0.1);
+    return std::min(seconds, maximum);
 }
 
 bool Window::beginFrame(View minimum, Color background)
@@ -210,7 +211,7 @@ bool Window::beginFrame(View minimum, Color background)
     currentView = view_;
     glViewport(0, 0, width, height);
     glClearColor(background.r, background.g, background.b, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     return true;
 }
 
@@ -232,8 +233,14 @@ void Window::present()
             Module._art_key(32);
     });
 #else
-    if (!vsync_)
-        SDL_Delay(16);
+    // Some drivers accept vsync but do not actually block. Cap presentation at
+    // about 60 Hz too, sleeping instead of burning a core on redundant frames.
+    const double elapsed = static_cast<double>(SDL_GetPerformanceCounter() - lastPresentation_) /
+                           SDL_GetPerformanceFrequency();
+    const double remaining = 1.0 / 60.0 - elapsed;
+    if (remaining > 0.0)
+        SDL_Delay(static_cast<Uint32>(std::ceil(remaining * 1000.0)));
+    lastPresentation_ = SDL_GetPerformanceCounter();
 #endif
 }
 
@@ -322,6 +329,15 @@ void fillFan(const std::vector<Point> &contour, Color color)
     draw(contourVertices(contour), GL_TRIANGLE_FAN, color);
 }
 void triangles(const std::vector<Vertex> &vertices) { draw(vertices, GL_TRIANGLES, {1, 1, 1}); }
+void depthTesting(bool enabled)
+{
+    if (enabled) {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+    } else {
+        glDisable(GL_DEPTH_TEST);
+    }
+}
 void additiveBlending(bool enabled)
 {
     if (enabled) {

@@ -1,0 +1,6 @@
+#pragma once
+
+namespace landscape {
+inline constexpr const char *vertexSource = R"GLSL(@TERRAIN_VERTEX_SOURCE@)GLSL";
+inline constexpr const char *fragmentSource = R"GLSL(@TERRAIN_FRAGMENT_SOURCE@)GLSL";
+} // namespace landscape

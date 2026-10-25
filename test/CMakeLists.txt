@@ -15,3 +15,7 @@ add_test(NAME grid_geometry COMMAND grid_test)
 add_executable(space_test space_test.cpp)
 target_link_libraries(space_test PRIVATE space_model)
 add_test(NAME space_geometry COMMAND space_test)
+
+add_executable(terrain_test terrain_test.cpp)
+target_link_libraries(terrain_test PRIVATE terrain_model)
+add_test(NAME terrain_geometry COMMAND terrain_test)

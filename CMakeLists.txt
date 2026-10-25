@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 project(blumme LANGUAGES CXX)
 
+# Noise and mesh math are expensive without optimization. Respect an explicit
+# Debug choice, but do not silently produce unoptimized native builds by default.
+if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS Debug Release RelWithDebInfo MinSizeRel)
+endif()
+
 if(EMSCRIPTEN)
     if(NOT CMAKE_RUNTIME_OUTPUT_DIRECTORY)
         set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/site)
@@ -74,7 +81,20 @@ add_executable(space_travel src/space_travel.cpp)
 target_include_directories(space_travel PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(space_travel PRIVATE space_model)
 
-foreach(app IN ITEMS blumme rays wonky_grid space_travel)
+add_library(terrain_model src/terrain.cpp)
+target_include_directories(terrain_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(terrain_model PUBLIC cxx_std_17)
+target_link_libraries(terrain_model PUBLIC glm::glm graphics_types)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    src/shaders/terrain.vert src/shaders/terrain.frag)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/terrain.vert TERRAIN_VERTEX_SOURCE)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/terrain.frag TERRAIN_FRAGMENT_SOURCE)
+configure_file(src/shaders/terrain_shaders.h.in generated/terrain_shaders.h @ONLY)
+add_executable(isometric_world src/isometric_world.cpp)
+target_include_directories(isometric_world PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_link_libraries(isometric_world PRIVATE terrain_model)
+
+foreach(app IN ITEMS blumme rays wonky_grid space_travel isometric_world)
     # SDL2main supplies the platform entry point where SDL requires it.
     if(TARGET SDL2::SDL2main)
         target_link_libraries(${app} PRIVATE SDL2::SDL2main)

@@ -30,15 +30,18 @@ ctest --test-dir build --output-on-failure
 ./build/rays
 ./build/wonky_grid
 ./build/space_travel
+./build/isometric_world
 ```
 
 Run in a graphical desktop session with OpenGL 2.1 support. CMake FetchContent
-fetches header-only GLM 1.0.1 for the space scene (pinned archive with SHA-256),
+fetches header-only GLM 1.0.1 for the 3D scenes (pinned archive with SHA-256),
 so the first configure needs network access. No manual GLM install is needed.
+Single-configuration builds default to **Release** for optimized noise/mesh math;
+use `-DCMAKE_BUILD_TYPE=Debug` explicitly when debugging.
 
 ## Web build with Podman
 
-The Podman build compiles all four apps with **Emscripten 3.1.74**, runs them
+The Podman build compiles all five apps with **Emscripten 3.1.74**, runs them
 in headless Chromium, and generates real PNG thumbnails for the gallery.
 Only Podman is needed on the host (the `Dockerfile` is Podman-compatible):
 
@@ -62,7 +65,7 @@ podman build --layers --target site --output type=local,dest=dist .
 python3 -m http.server 8080 --directory dist
 ```
 
-`dist/` contains `index.html`, CSS, the four `.html`/`.js`/`.wasm` applications,
+`dist/` contains `index.html`, CSS, the five `.html`/`.js`/`.wasm` applications,
 and `thumbnails/*.png`. Deploy this directory unchanged to a static host.
 Relative URLs support GitHub Pages repository subpaths. No server-side code,
 threads, cross-origin isolation headers, CDN assets, or runtime npm packages
@@ -179,16 +182,42 @@ true camera translation, perspective expansion, distance fade, recycling,
 safety clearance, frame-independent boost easing, and finite capsule geometry,
 including portrait viewports.
 
+`isometric_world` / **Green waves** renders a continuous field of unit-width,
+green XY columns with Z as up. The camera has exactly **30° azimuth around Z**
+and **30° elevation**, with orthographic projection (not perspective). It pans
+along the ground at fixed altitude, moving the landscape upward on screen.
+Three octaves of animated 3D simplex noise drive the column heights; absolute
+world coordinates keep the terrain continuous as new tiles enter the view.
+Flat face normals and a directional sun shade tops and the two visible sides.
+
+- **Space:** pause/resume both the waves and movement.
+- **P / Pan button:** toggle panning while the heights keep animating.
+- **R:** generate a new terrain seed and reset the view.
+- **F:** fullscreen.
+
+`src/terrain.h` exposes height sampling, camera matrices, visible tile bounds,
+and depth-bearing meshes. Tops and exposed wall portions use the depth buffer.
+Columns extend below the view, but interior wall sections covered by neighbors
+are omitted, avoiding expensive overdraw without changing the visible surface.
+Heights are sampled once per tile plus a neighbor halo. Paused geometry is cached.
+The view uses a larger visual-animation time-step cap so moderately slow frames
+do not slow the pan; native presentation also sleeps to cap rendering near 60 Hz
+if a driver accepts vsync without actually blocking. Tests cover both camera
+angles, fixed altitude, orthographic scale, noise continuity, lighting, coverage,
+hidden-wall culling, and invisible column bottoms.
+
 ## Reusable graphics library
 
 The `graphics` CMake target lives in `lib/graphics/`. It handles SDL/OpenGL
 initialization and cleanup, event polling, frame timing, high-DPI viewports,
 aspect-preserving projection, clearing, and presentation. Drawing helpers provide
 lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
-All four programs use this library without direct OpenGL calls. The triangle
+All five programs use this library without direct OpenGL calls. The triangle
 mesh helper also supplies per-vertex local coordinates, a scalar variant, and
 two extra parameters to shaders. `drawableSize()` exposes real pixel dimensions;
 `additiveBlending()` supports luminous effects without app-level OpenGL calls.
+`depthTesting()` enables proper 3D face occlusion; the window requests a 24-bit
+depth buffer and clears it each frame.
 Windows request 4× MSAA for geometry edges, automatically retrying without
 multisampling if unavailable.
 

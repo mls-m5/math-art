@@ -31,7 +31,7 @@ public:
     Window &operator=(const Window &) = delete;
 
     bool pollEvent(SDL_Event &event);
-    double elapsed(); // Seconds since the previous call, clamped to 0.1.
+    double elapsed(double maximum = 0.1); // Seconds since previous call, capped by maximum.
     // Expand the view to fit minimum extents, preserving round circles.
     // Returns false while the drawable is zero-sized.
     bool beginFrame(View minimum, Color background = {0, 0, 0});
@@ -42,8 +42,8 @@ public:
 private:
     SDL_Window *window_ = nullptr;
     SDL_GLContext context_ = nullptr;
-    bool vsync_ = false;
     Uint64 previous_ = 0;
+    Uint64 lastPresentation_ = 0;
     View view_{};
     struct Renderer;
     std::unique_ptr<Renderer> renderer_;
@@ -63,6 +63,8 @@ void fillFan(const std::vector<Point> &contour, Color color);
 void triangles(const std::vector<Vertex> &vertices);
 // Additive blending is useful for luminous art. Reset to false after drawing.
 void additiveBlending(bool enabled);
+// For shaders supplying projected Z. Reset to false after drawing.
+void depthTesting(bool enabled);
 void outline(const std::vector<Point> &contour, Color color);
 void line(Point start, Point end, Color color);
 void disk(Point center, double radius, Color color);
