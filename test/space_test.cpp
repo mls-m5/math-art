@@ -20,6 +20,16 @@ int main()
     spaceart::Starfield field(42);
     const auto before = field.stars();
     const auto camera = field.camera();
+    const auto checkCorridor = [](const spaceart::Starfield &scene) {
+        for (const auto &star : scene.stars()) {
+            const auto relative = star.position - scene.camera().position;
+            const auto lateral = relative - scene.camera().forward * glm::dot(relative, scene.camera().forward);
+            require(glm::length(lateral) >= spaceart::safetyRadius - 1e-7,
+                    "Star entered the camera's safety corridor");
+        }
+    };
+    checkCorridor(field);
+    require(spaceart::spawnDistance > 220, "Spawn plane did not move farther away");
     field.update(0.1, 28.0, 1.5);
     require(glm::length(field.camera().position - camera.forward * 2.8) < 1e-10,
             "Camera did not move through 3D world space");
@@ -52,9 +62,9 @@ int main()
     require(translated && glm::length(translated->start - distant->start) < 1e-8,
             "Camera translation is not a real view transform");
 
-    require(!spaceart::projectStar(starAt(220, 0), camera, 960, 640, 28), "Spawned star did not start invisible");
-    const auto faint = spaceart::projectStar(starAt(205, 0), camera, 960, 640, 28);
-    const auto bright = spaceart::projectStar(starAt(150, 0), camera, 960, 640, 28);
+    require(!spaceart::projectStar(starAt(spaceart::spawnDistance, 0), camera, 960, 640, 28), "Spawned star did not start invisible");
+    const auto faint = spaceart::projectStar(starAt(spaceart::spawnDistance - 15, 0), camera, 960, 640, 28);
+    const auto bright = spaceart::projectStar(starAt(spaceart::fadeStartDistance + 10, 0), camera, 960, 640, 28);
     require(faint && bright && faint->brightness < bright->brightness, "Distance fade-in is not gradual");
     require(!spaceart::projectStar(starAt(-5, 0), camera, 960, 640, 28), "Behind-camera star was rendered");
     require(!spaceart::projectStar(starAt(20, 0), camera, 0, 0, 28), "Zero-sized drawable was projected");
@@ -66,13 +76,17 @@ int main()
 
     field.update(100, 28, 1.5); // Every original star must now be recycled ahead.
     require(field.stars().size() == before.size(), "Recycling changed the star count");
+    checkCorridor(field);
     for (const auto &star : field.stars()) {
         const double depth = glm::dot(star.position - field.camera().position, field.camera().forward);
-        require(depth >= 220 - 1e-8 && depth <= 235 + 1e-8, "Star was not respawned far ahead");
+        require(depth >= spaceart::spawnDistance - 1e-8 && depth <= spaceart::spawnDistance + 15 + 1e-8, "Star was not respawned far ahead");
         require(!spaceart::projectStar(star, field.camera(), 960, 640, 28), "Recycled star popped in visibly");
     }
-    for (int i = 0; i < 900; ++i)
-        field.update(1.0 / 60.0, 75, 1.5);
+    for (int i = 0; i < 900; ++i) {
+        field.update(1.0 / 60.0, spaceart::boostedSpeed, 1.5);
+        if (i % 30 == 0)
+            checkCorridor(field);
+    }
     for (const auto &star : field.stars())
         require(glm::dot(star.position - field.camera().position, field.camera().forward) >= -spaceart::behindDistance - 1e-8,
                 "Star survived beyond the despawn plane");
@@ -84,5 +98,19 @@ int main()
                         vertex.variant > 0 && vertex.variant <= 1 && vertex.parameters.y > 0,
                     "Capsule vertex is invalid");
     }
-    std::cout << "3D camera, perspective, star lifecycle, and capsule mesh tests passed\n";
+    const double firstStep = spaceart::approachFlightSpeed(spaceart::normalSpeed, true, 1.0 / 60.0);
+    require(firstStep > spaceart::normalSpeed && firstStep < spaceart::boostedSpeed,
+            "Boost switched speed instantly instead of ramping");
+    const double whole = spaceart::approachFlightSpeed(spaceart::normalSpeed, true, 0.1);
+    const double halves = spaceart::approachFlightSpeed(
+        spaceart::approachFlightSpeed(spaceart::normalSpeed, true, 0.05), true, 0.05);
+    require(std::abs(whole - halves) < 1e-10, "Boost ramp depends on frame rate");
+    double speed = spaceart::normalSpeed;
+    for (int i = 0; i < 600; ++i)
+        speed = spaceart::approachFlightSpeed(speed, true, 1.0 / 60.0);
+    require(std::abs(speed - spaceart::boostedSpeed) < 0.0001, "Boost never approached cruising speed");
+    const double slowing = spaceart::approachFlightSpeed(speed, false, 1.0 / 60.0);
+    require(slowing < speed && slowing > spaceart::normalSpeed, "Slowdown was not smooth");
+    require(spaceart::approachFlightSpeed(speed, false, 0.0) == speed, "Paused ramp changed speed");
+    std::cout << "3D projection, lifecycle, safety corridor, and smooth boost tests passed\n";
 }

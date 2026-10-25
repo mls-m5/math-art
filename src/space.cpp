@@ -43,6 +43,14 @@ bool clipScreen(glm::dvec2 &a, glm::dvec2 &b, double width, double height, doubl
 }
 } // namespace
 
+double approachFlightSpeed(double current, bool boosted, double dt)
+{
+    if (!std::isfinite(current) || current < 0 || !std::isfinite(dt) || dt < 0)
+        throw std::invalid_argument("Flight speed and step must be nonnegative and finite");
+    const double target = boosted ? boostedSpeed : normalSpeed;
+    return current + (target - current) * -std::expm1(-dt / 0.65);
+}
+
 glm::dmat4 Camera::view() const
 {
     return glm::lookAt(position, position + forward, glm::dvec3(0, 1, 0));
@@ -52,7 +60,7 @@ glm::dmat4 Camera::projection(double aspect) const
 {
     if (!std::isfinite(aspect) || aspect <= 0)
         throw std::invalid_argument("Camera aspect must be positive and finite");
-    return glm::perspective(glm::radians(fieldOfView), aspect, nearPlane, 260.0);
+    return glm::perspective(glm::radians(fieldOfView), aspect, nearPlane, spawnDistance + 60.0);
 }
 
 Starfield::Starfield(std::uint32_t seed, double aspect, std::size_t count)
@@ -71,8 +79,15 @@ void Starfield::spawn(Star &star, bool initial)
     const glm::dvec3 right = glm::normalize(glm::cross(camera_.forward, glm::dvec3(0, 1, 0)));
     const glm::dvec3 up = glm::cross(right, camera_.forward);
     const double spread = spawnDistance * std::tan(glm::radians(fieldOfView * 0.5));
-    const double x = (2.0 * unit(random_) - 1.0) * spread * aspect_;
-    const double y = (2.0 * unit(random_) - 1.0) * spread;
+    double x, y;
+    // Reject the small central corridor. With a fixed travel direction, a
+    // star's lateral distance remains constant throughout its entire lifetime.
+    // For extreme portrait aspects, retain enough width to sample safely.
+    const double halfWidth = std::max(spread * aspect_, safetyRadius);
+    do {
+        x = (2.0 * unit(random_) - 1.0) * halfWidth;
+        y = (2.0 * unit(random_) - 1.0) * spread;
+    } while (x * x + y * y < safetyRadius * safetyRadius);
     star.position = camera_.position + camera_.forward * depth + right * x + up * y;
     star.luminance = 0.45 + 0.55 * unit(random_);
     star.size = 0.035 + 0.035 * unit(random_);
@@ -106,7 +121,7 @@ std::optional<Capsule> projectStar(const Star &star, const Camera &camera,
         star.position + camera.forward * speed * exposure, 1.0));
     const double depth = -head.z;
     const double brightness = star.luminance *
-        (1.0 - smooth(140.0, spawnDistance, depth)) * smooth(nearPlane, 1.0, depth);
+        (1.0 - smooth(fadeStartDistance, spawnDistance, depth)) * smooth(nearPlane, 1.0, depth);
     if (brightness <= 0.0001 || (head.z > -nearPlane && tail.z > -nearPlane))
         return std::nullopt;
     if (head.z > -nearPlane)

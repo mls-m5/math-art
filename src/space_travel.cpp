@@ -9,12 +9,13 @@
 namespace {
 struct App
 {
-    graphics::Window window{"Space travel - B: boost | R: randomize | Space: pause | Esc: quit"};
+    graphics::Window window{"Space travel - B: boost | F: fullscreen | R: randomize | Space: pause"};
     graphics::Shader shader{spaceart::vertexSource, spaceart::fragmentSource};
     spaceart::Starfield field{graphics::randomSeed()};
     bool running = true;
     bool paused = false;
     bool boost = false;
+    double speed = spaceart::normalSpeed;
 
     bool frame()
     {
@@ -42,9 +43,10 @@ struct App
             return true;
         const auto view = window.view();
         const auto size = window.drawableSize();
-        const double speed = boost ? 150.0 : 56.0;
-        if (!paused)
+        if (!paused) {
+            speed = spaceart::approachFlightSpeed(speed, boost, dt);
             field.update(dt, speed, view.halfWidth / view.halfHeight);
+        }
         auto mesh = spaceart::buildStarMesh(field, static_cast<int>(size.x), static_cast<int>(size.y), speed);
         for (auto &vertex : mesh) {
             vertex.position.x *= view.halfWidth;

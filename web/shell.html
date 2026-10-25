@@ -41,7 +41,7 @@
     <button id="pause" aria-pressed="false">Pause</button>
     <button id="randomize">Randomize</button>
     <button id="special">Options</button>
-    <button id="fullscreen">Fullscreen</button>
+    <button id="fullscreen" aria-pressed="false" title="Toggle fullscreen (F)">Fullscreen</button>
   </nav>
   <div id="status" role="status"><strong>Opening the canvas</strong><p id="message">Loading artwork…</p></div>
   <script>
@@ -120,15 +120,29 @@
       option.setAttribute('aria-pressed', String(option.getAttribute('aria-pressed') !== 'true'));
       key(specialKey);
     };
-    document.getElementById('fullscreen').onclick = async () => {
+    async function toggleFullscreen() {
       try {
         if (document.fullscreenElement) await document.exitFullscreen();
         else await document.documentElement.requestFullscreen();
       } catch (error) { console.warn('Fullscreen unavailable', error); }
       canvas.focus();
-    };
+    }
+    document.getElementById('fullscreen').onclick = toggleFullscreen;
+    document.addEventListener('fullscreenchange', () => {
+      const active = !!document.fullscreenElement;
+      const button = document.getElementById('fullscreen');
+      button.textContent = active ? 'Exit fullscreen' : 'Fullscreen';
+      button.setAttribute('aria-pressed', String(active));
+      showControls();
+    });
     // Keep button labels in sync when using the original keyboard shortcuts.
     window.addEventListener('keydown', event => {
+      // requestFullscreen needs a real user gesture, not a later WASM frame.
+      if (!event.repeat && event.code === 'KeyF' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        event.preventDefault();
+        toggleFullscreen();
+        return;
+      }
       if (event.repeat || !window.artReady || event.target instanceof HTMLButtonElement) return;
       if (event.code === 'Space') {
         const on = pause.getAttribute('aria-pressed') !== 'true';

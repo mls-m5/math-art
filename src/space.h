@@ -10,8 +10,16 @@
 namespace spaceart {
 
 inline constexpr double nearPlane = 0.2;
-inline constexpr double spawnDistance = 220.0;
+inline constexpr double spawnDistance = 440.0;
+inline constexpr double fadeStartDistance = 280.0;
 inline constexpr double behindDistance = 12.0;
+// Clear cylinder around the flight axis, measured in camera-local XY.
+inline constexpr double safetyRadius = 4.0;
+inline constexpr double normalSpeed = 56.0;
+inline constexpr double boostedSpeed = 150.0;
+
+// Frame-rate-independent exponential ramp, with a 0.65-second time constant.
+double approachFlightSpeed(double current, bool boosted, double dt);
 
 struct Camera
 {

@@ -70,9 +70,15 @@ try {
       if (await page.evaluate(() => document.body.classList.contains('ui-idle')))
         errors.push('Controls hid while keyboard-focused');
     }
+    await page.keyboard.press('f');
+    await page.waitForFunction(() => !!document.fullscreenElement &&
+      document.getElementById('fullscreen').getAttribute('aria-pressed') === 'true');
+    await page.keyboard.press('f');
+    await page.waitForFunction(() => !document.fullscreenElement &&
+      document.getElementById('fullscreen').getAttribute('aria-pressed') === 'false');
     if (await page.evaluate(() => !!window.artError)) errors.push('Rendering stopped');
     if (errors.length) throw new Error(`${app}: ${errors.join('\n')}`);
-    console.log(`${app}: WebGL rendering, resize, auto-hide controls OK; ${(await stat(filename)).size} byte thumbnail`);
+    console.log(`${app}: WebGL rendering, resize, auto-hide, fullscreen shortcut OK; ${(await stat(filename)).size} byte thumbnail`);
     await page.close();
   }
   // Verify gallery images and links below a repository-style path.

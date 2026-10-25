@@ -143,6 +143,24 @@ Window::~Window()
 bool Window::pollEvent(SDL_Event &event)
 {
     while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_KEYDOWN && !event.key.repeat &&
+            event.key.keysym.sym == SDLK_f &&
+            !(event.key.keysym.mod & (KMOD_CTRL | KMOD_ALT | KMOD_GUI))) {
+#ifndef __EMSCRIPTEN__
+            const bool fullscreen = SDL_GetWindowFlags(window_) & SDL_WINDOW_FULLSCREEN;
+            if (SDL_SetWindowFullscreen(window_, fullscreen ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP) != 0)
+                std::cerr << "Fullscreen unavailable: " << SDL_GetError() << '\n';
+#endif
+            // Browser F is handled synchronously by the shell's user gesture.
+            continue;
+        }
+#ifndef __EMSCRIPTEN__
+        if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE &&
+            (SDL_GetWindowFlags(window_) & SDL_WINDOW_FULLSCREEN)) {
+            SDL_SetWindowFullscreen(window_, 0);
+            continue;
+        }
+#endif
 #ifdef __EMSCRIPTEN__
         // Escape belongs to browser fullscreen, not application shutdown.
         if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)

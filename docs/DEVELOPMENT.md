@@ -109,6 +109,10 @@ and container image versions are pinned together. Geometry tests remain native.
 
 ## Programs and controls
 
+**F** toggles fullscreen in every app, on desktop and web. On desktop, **Esc**
+first leaves fullscreen; from windowed mode it quits. In the browser, Escape
+belongs to fullscreen rather than application shutdown.
+
 `blumme` retains the animated Voronoi flowers:
 
 - **R:** generate a new random arrangement.
@@ -157,17 +161,23 @@ expansion is screen-space, so the ends remain round. An antialiased capsule SDF
 shader and additive blending draw all trails in one batch.
 
 - **Space:** pause/resume flight.
-- **B / Boost button:** toggle between 56 and 150 world units/second.
+- **B / Boost button:** smoothly ramp between 56 and 150 world units/second
+  (frame-rate-independent easing with a 0.65-second time constant).
+- **F:** toggle fullscreen.
 - **R:** regenerate the starfield and reset the camera.
 - **Esc:** quit on desktop (exit fullscreen in the browser).
 
-The camera follows a fixed normalized 3D direction. Stars fade in from 220 to
-140 units ahead and recycle after passing 12 units behind the camera. Recycled
-stars spawn invisibly 220–235 units ahead. Perspective, near-plane/screen clipping,
+The camera follows a fixed normalized 3D direction. Stars fade in from 440 to
+280 units ahead and recycle after passing 12 units behind the camera. Recycled
+stars spawn invisibly 440–455 units ahead. Spawning excludes a cylinder of radius
+4 world units around the flight axis (camera-local XY). Because the camera's
+heading is fixed, stars stay outside this corridor for their entire lifetimes,
+preventing head-on collisions. Perspective, near-plane/screen clipping,
 and a small near-camera fade prevent flashes as stars pass. `src/space.h` exposes
 the CPU-only camera, starfield, projection, and capsule-mesh code. Tests cover
-true camera translation, perspective expansion, distance fade, recycling, and
-finite capsule geometry, including portrait viewports.
+true camera translation, perspective expansion, distance fade, recycling,
+safety clearance, frame-independent boost easing, and finite capsule geometry,
+including portrait viewports.
 
 ## Reusable graphics library
 
