@@ -29,6 +29,10 @@ int main()
     const auto firstPixel = camera.projection * camera.view * glm::dvec4(0, 0, 6, 1);
     const auto laterPixel = later.projection * later.view * glm::dvec4(0, 0, 6, 1);
     require(laterPixel.y > firstPixel.y, "Landscape does not scroll upward");
+    const auto oneSecond = terrain.camera(1, 1.5);
+    const auto movingPixel = oneSecond.projection * oneSecond.view * glm::dvec4(0, 0, 6, 1);
+    require(movingPixel.y - firstPixel.y > 0.15, "Upward pan is too subtle to see");
+    require(std::abs(movingPixel.x - firstPixel.x) < 1e-10, "Pan drifts sideways on screen");
     for (double depth : {-20.0, -100.0, -200.0}) {
         const auto a = camera.projection * glm::dvec4(0, 0, depth, 1);
         const auto b = camera.projection * glm::dvec4(1, 0, depth, 1);

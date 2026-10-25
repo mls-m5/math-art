@@ -11,6 +11,7 @@ inline constexpr double elevationDegrees = 30.0;
 inline constexpr double minimumHeight = 2.0;
 inline constexpr double maximumHeight = 10.0;
 inline constexpr double columnBottom = -128.0;
+inline constexpr double panSpeed = 4.0; // Ground units per second.
 
 struct Camera
 {

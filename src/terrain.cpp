@@ -13,7 +13,6 @@ namespace {
 const glm::dvec3 sun = glm::normalize(glm::dvec3(-0.45, 0.65, 1.0));
 constexpr double halfViewHeight = 11.0;
 constexpr double cameraDistance = 100.0;
-constexpr double panSpeed = 1.0;
 
 double illumination(glm::dvec3 normal)
 {

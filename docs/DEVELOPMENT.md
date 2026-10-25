@@ -185,7 +185,9 @@ including portrait viewports.
 `isometric_world` / **Green waves** renders a continuous field of unit-width,
 green XY columns with Z as up. The camera has exactly **30° azimuth around Z**
 and **30° elevation**, with orthographic projection (not perspective). It pans
-along the ground at fixed altitude, moving the landscape upward on screen.
+along the ground at fixed altitude at 4 world units/second, moving the landscape
+upward on screen (roughly one screen height every 11 seconds). Panning is on by
+default; **P** toggles it. The rate is `landscape::panSpeed` in `src/terrain.h`.
 Three octaves of animated 3D simplex noise drive the column heights; absolute
 world coordinates keep the terrain continuous as new tiles enter the view.
 Flat face normals and a directional sun shade tops and the two visible sides.
