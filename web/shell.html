@@ -36,7 +36,7 @@
 </head>
 <body>
   <canvas id="canvas" width="960" height="640" tabindex="0" aria-label="Interactive generative artwork"></canvas>
-  <header class="chrome"><a href="./index.html" aria-label="Back to gallery">← Gallery</a><span id="name">Mathematical art</span></header>
+  <header class="chrome"><a id="gallery-link" href="./index.html" aria-label="Back to gallery">← Gallery</a><span id="name">Mathematical art</span></header>
   <nav class="chrome" aria-label="Artwork controls">
     <button id="pause" aria-pressed="false">Pause</button>
     <button id="randomize">Randomize</button>
@@ -60,6 +60,13 @@
     };
     const [title, special, specialKey, specialOn] = artworks[id] || ['Art study', 'Options', 0, false];
     document.title = title + ' · Mathematical art';
+    if (id === 'clouds') {
+      const back = document.getElementById('gallery-link');
+      back.href = './failed-experiments.html';
+      back.textContent = '← Experiments';
+      back.setAttribute('aria-label', 'Back to failed experiments');
+      document.title = title + ' · Failed experiments · Mathematical art';
+    }
     document.getElementById('name').textContent = title;
     const canvas = document.getElementById('canvas');
     const status = document.getElementById('status');

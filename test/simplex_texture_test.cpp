@@ -1,4 +1,5 @@
 #include "simplex_texture.h"
+#include "cloud_mask.h"
 
 #include <algorithm>
 #include <cmath>
@@ -38,5 +39,32 @@ int main()
     bool rejected=false;
     try { noise.rgba(0); } catch(const std::invalid_argument &) { rejected=true; }
     require(rejected, "Invalid texture size was accepted");
-    std::cout << "Seamless simplex texture tests passed\n";
+    noiseart::CloudMask mask(42), sameMask(42);
+    require(mask.circles().size() >= 32 && mask.circles().size() <= 99,
+            "Unexpected number of irregular cloud lobes");
+    double smallest = 1, largest = 0;
+    for (std::size_t i = 0; i < mask.circles().size(); ++i) {
+        const auto &a = mask.circles()[i];
+        smallest = std::min(smallest, a.radius);
+        largest = std::max(largest, a.radius);
+        require(mask.sample(a.x, a.y) >= 1.0, "Cloud core is not dense");
+        require(std::abs(mask.sample(a.x+.1,a.y) - mask.sample(
+                    a.x+.1+noiseart::CloudMask::periodX, a.y-noiseart::CloudMask::periodY)) < 1e-10,
+                "Cloud mask has a repeat seam");
+        require(sameMask.circles()[i].x == a.x, "Cloud mask seed is not reproducible");
+    }
+    int clear = 0, dense = 0;
+    for (int y = 0; y < 40; ++y) {
+        for (int x = 0; x < 60; ++x) {
+            const double field = mask.sample(x / 60.0 * noiseart::CloudMask::periodX,
+                                             y / 40.0 * noiseart::CloudMask::periodY);
+            clear += field == 0.0;
+            dense += field >= 0.95;
+        }
+    }
+    require(clear > 800 && dense > 100, "Mask lacks separate clouds and clear sky");
+    require(largest - smallest > 0.07, "Cloud lobe sizes are too uniform");
+    require(mask.rgba(32) == sameMask.rgba(32), "Baked cloud mask is not reproducible");
+    require(mask.rgba(32) != noiseart::CloudMask(43).rgba(32), "Cloud masks do not vary with seed");
+    std::cout << "Seamless simplex textures and dense cloud cluster mask tests passed\n";
 }

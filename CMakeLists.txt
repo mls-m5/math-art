@@ -94,7 +94,7 @@ add_executable(isometric_world src/isometric_world.cpp)
 target_include_directories(isometric_world PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(isometric_world PRIVATE terrain_model)
 
-add_library(simplex_textures src/simplex_texture.cpp)
+add_library(simplex_textures src/simplex_texture.cpp src/cloud_mask.cpp)
 target_include_directories(simplex_textures PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(simplex_textures PUBLIC cxx_std_17)
 target_link_libraries(simplex_textures PUBLIC glm::glm)
@@ -130,7 +130,7 @@ endif()
 if(EMSCRIPTEN)
     # Relative links work at both / and /repository/ on GitHub Pages.
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        web/index.html web/gallery.css web/.nojekyll)
-    file(COPY web/index.html web/gallery.css web/.nojekyll
+        web/index.html web/failed-experiments.html web/gallery.css web/.nojekyll)
+    file(COPY web/index.html web/failed-experiments.html web/gallery.css web/.nojekyll
         DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 endif()

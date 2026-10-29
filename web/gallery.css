@@ -7,6 +7,10 @@ h1 { font-size: clamp(3.2rem, 8vw, 7rem); font-weight: 450; letter-spacing: -.06
 h1 span { color: #d1a579; }
 .intro { color: #a9a7a2; line-height: 1.8; font-size: 1.05rem; }
 .gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6rem; }
+.archive { max-width: 680px; grid-template-columns: 1fr; }
+.back-link, footer a { color: #b4a28c; text-decoration: none; }
+.back-link:hover, footer a:hover { color: #eeeae2; text-decoration: underline; }
+.back-link:focus-visible, footer a:focus-visible { outline: 2px solid #d1a579; outline-offset: 4px; }
 .card { color: inherit; text-decoration: none; border: 1px solid #ffffff13; border-radius: 1.2rem; overflow: hidden; background: #15181d; transition: transform .25s, border-color .25s; }
 .card:hover { transform: translateY(-7px); border-color: #d1a57980; }
 .card:focus-visible { outline: 2px solid #d1a579; outline-offset: 5px; }

@@ -1,7 +1,7 @@
 # Mathematical art
 
 A few playful experiments in geometry and motion. Flowers, flowing patterns,
-rolling landscapes, clouds, and stars—rendered live in your browser.
+rolling landscapes, and stars—rendered live in your browser.
 
 [![Blumme: colorful geometric flowers with rounded petals](docs/images/blumme.png)](https://mls-m5.github.io/math-art/blumme.html)
 

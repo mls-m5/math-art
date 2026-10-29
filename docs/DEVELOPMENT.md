@@ -51,7 +51,10 @@ podman build --layers -t localhost/living-forms .
 podman run --rm -p 8080:80 localhost/living-forms
 ```
 
-Open **http://localhost:8080**. The index is a responsive gallery; each artwork
+Open **http://localhost:8080**. The index is a responsive gallery; archived work
+lives on **Failed experiments** (`failed-experiments.html`), linked from its
+footer. Clouds is archived there rather than shown among the main pieces.
+Archived programs still build, run, and receive generated thumbnails. Each artwork
 uses the same `web/shell.html`: edge-to-edge canvas, gallery link, pause,
 randomize, app-specific toggle, and fullscreen controls. The original keyboard
 shortcuts still work; browser Escape exits fullscreen instead of quitting.
@@ -209,15 +212,24 @@ if a driver accepts vsync without actually blocking. Tests cover both camera
 angles, fixed altitude, orthographic scale, noise continuity, lighting, coverage,
 hidden-wall culling, and invisible column bottoms.
 
-`clouds` renders soft drifting clouds over a blue sky. Three seeded, seamless
-256×256 simplex textures are generated once and blended at different scales
-and velocities in the fragment shader. Nearby density samples approximate
-sun-facing light and soft self-shadow. This is a lightweight layered 2D cloud
-study, not a full volumetric weather simulation; rendering costs nine texture
-lookups per pixel, with no CPU noise generation during normal frames.
+`clouds` (**archived under Failed experiments**) renders separated drifting cloud groups over a blue sky. A seeded mask
+of overlapping soft circles defines each cloud's silhouette, leaving clear gaps
+between groups. Instead of a fixed grid, 8–11 randomly scattered groups use
+4–9 differently sized lobes along bent, tilted spines. Sizes, lengths, directions,
+and positions vary, producing irregular banks rather than repeated round balls. Interiors are solid, almost white; simplex noise only roughens
+and shades a broad, softly feathered band around the edges, never punching
+holes through the fully dense cores.
+Three seeded, seamless 256×256 simplex textures are generated once and blended
+at different scales and velocities. Nearby density samples approximate edge
+lighting. This is a lightweight layered 2D study, not full volumetric weather:
+one mask-texture lookup per pixel plus at most eleven noise lookups near edges;
+two extra 8×/16× detail layers restore fine turbulence without narrowing the
+soft transition or adding speckles to solid cores;
+clear sky and white cores skip noise sampling entirely. No CPU noise is generated per frame.
 
 - **Space:** pause/resume drift and shape evolution.
 - **W / Wind button:** stop/start drift without resetting cloud positions.
+  Internal noise currents keep evolving relative to the stationary mask.
 - **R:** regenerate all three noise textures.
 - **F:** fullscreen.
 
@@ -226,7 +238,13 @@ The CPU-only `simplex_textures` target exposes `noiseart::SimplexTexture` in
 GLM simplex noise, giving seamless repetition in both axes. `sample()` returns
 0–1 noise; `rgba()` creates reusable grayscale RGBA8 texture data. Tests check
 seams, smoothness, normalized values, seed reproducibility, and image contents.
-The browser smoke test also verifies that the rendered clouds actually move.
+`src/cloud_mask.h` exposes the periodic soft-circle field used for grouped
+silhouettes. A 512×512 mask is baked and uploaded only when regenerating, so
+more complex shapes do not add per-circle shader loops. Mask tests check dense
+cores, size variation, repeat seams, seeded baking, and clear-sky gaps. The browser smoke test verifies
+white cores, blue gaps, and animated edge noise even with mask drift turned off.
+`uWindTime` moves the silhouettes; independent `uTime` currents advect coarse and
+fine noise in different directions inside them. Space pauses both clocks.
 
 ## Reusable graphics library
 

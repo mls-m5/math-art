@@ -2,6 +2,7 @@
 #include "graphics/shader.h"
 #include "graphics/texture.h"
 #include "simplex_texture.h"
+#include "cloud_mask.h"
 #include "clouds_shaders.h"
 
 #include <array>
@@ -16,6 +17,7 @@ struct App
     graphics::Shader shader{clouds::vertexSource, clouds::fragmentSource};
     std::mt19937 random{graphics::randomSeed()};
     std::array<std::unique_ptr<graphics::Texture2D>, 3> textures;
+    std::unique_ptr<graphics::Texture2D> maskTexture;
     bool running = true, paused = false, wind = true;
     double time = 0.0, windTime = 0.0;
 
@@ -26,6 +28,8 @@ struct App
             const noiseart::SimplexTexture noise(static_cast<std::uint32_t>(random()));
             texture = std::make_unique<graphics::Texture2D>(256, 256, noise.rgba());
         }
+        const noiseart::CloudMask mask(static_cast<std::uint32_t>(random()));
+        maskTexture = std::make_unique<graphics::Texture2D>(512, 512, mask.rgba());
         time = windTime = 0.0;
     }
 
@@ -57,6 +61,9 @@ struct App
         shader.setInt("uNoise0", 0);
         shader.setInt("uNoise1", 1);
         shader.setInt("uNoise2", 2);
+        maskTexture->bind(3);
+        shader.setInt("uCloudMask", 3);
+        shader.setVec2("uMaskPeriod", noiseart::CloudMask::periodX, noiseart::CloudMask::periodY);
         shader.setFloat("uTime", static_cast<float>(time));
         shader.setFloat("uWindTime", static_cast<float>(windTime));
         shader.setFloat("uAspect", static_cast<float>(view.halfWidth / view.halfHeight));
