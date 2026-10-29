@@ -5,7 +5,7 @@ import { readFile, mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(process.argv[2] || 'dist');
-const apps = ['blumme', 'rays', 'wonky_grid', 'space_travel', 'isometric_world'];
+const apps = ['blumme', 'rays', 'wonky_grid', 'space_travel', 'isometric_world', 'clouds'];
 const mount = '/art-studies'; // Exercise GitHub Pages-style subpath hosting.
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.css': 'text/css', '.png': 'image/png' };
 const server = createServer(async (request, response) => {
@@ -50,6 +50,17 @@ try {
       high = Math.max(high, png.data[i], png.data[i + 1], png.data[i + 2]);
     }
     if (high - low < 30) throw new Error(`${app}: canvas looks blank`);
+    if (app === 'clouds') {
+      const frame = await page.evaluate(() => window.artFrames);
+      await page.evaluate(() => Module._art_key(32)); // Resume the frozen capture.
+      await page.waitForFunction(start => window.artFrames >= start + 30, frame);
+      const moved = PNG.sync.read(await page.locator('#canvas').screenshot());
+      let changed = 0;
+      for (let i = 0; i < png.data.length; i += 4)
+        if (Math.abs(png.data[i] - moved.data[i]) > 4) ++changed;
+      if (changed < 500) throw new Error('Cloud animation appears frozen');
+      await page.evaluate(() => Module._art_key(32));
+    }
     // Verify resizing too: screenshots double as WebGL smoke tests.
     await page.setViewportSize({ width: 640, height: 400 });
     await page.waitForFunction(() => document.querySelector('canvas').width === 640 && document.querySelector('canvas').height === 400);

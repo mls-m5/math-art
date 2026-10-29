@@ -94,7 +94,20 @@ add_executable(isometric_world src/isometric_world.cpp)
 target_include_directories(isometric_world PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(isometric_world PRIVATE terrain_model)
 
-foreach(app IN ITEMS blumme rays wonky_grid space_travel isometric_world)
+add_library(simplex_textures src/simplex_texture.cpp)
+target_include_directories(simplex_textures PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(simplex_textures PUBLIC cxx_std_17)
+target_link_libraries(simplex_textures PUBLIC glm::glm)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    src/shaders/clouds.vert src/shaders/clouds.frag)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/clouds.vert CLOUDS_VERTEX_SOURCE)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/clouds.frag CLOUDS_FRAGMENT_SOURCE)
+configure_file(src/shaders/clouds_shaders.h.in generated/clouds_shaders.h @ONLY)
+add_executable(clouds src/clouds.cpp)
+target_include_directories(clouds PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_link_libraries(clouds PRIVATE simplex_textures)
+
+foreach(app IN ITEMS blumme rays wonky_grid space_travel isometric_world clouds)
     # SDL2main supplies the platform entry point where SDL requires it.
     if(TARGET SDL2::SDL2main)
         target_link_libraries(${app} PRIVATE SDL2::SDL2main)

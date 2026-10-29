@@ -1,0 +1,6 @@
+#pragma once
+
+namespace clouds {
+inline constexpr const char *vertexSource = R"GLSL(@CLOUDS_VERTEX_SOURCE@)GLSL";
+inline constexpr const char *fragmentSource = R"GLSL(@CLOUDS_FRAGMENT_SOURCE@)GLSL";
+} // namespace clouds

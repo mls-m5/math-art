@@ -36,6 +36,7 @@ struct Shader::Impl
     PFNGLUSEPROGRAMPROC useProgram = load<PFNGLUSEPROGRAMPROC>("glUseProgram");
     PFNGLGETUNIFORMLOCATIONPROC uniformLocation = load<PFNGLGETUNIFORMLOCATIONPROC>("glGetUniformLocation");
     PFNGLUNIFORM1FPROC uniform1f = load<PFNGLUNIFORM1FPROC>("glUniform1f");
+    PFNGLUNIFORM1IPROC uniform1i = load<PFNGLUNIFORM1IPROC>("glUniform1i");
     PFNGLUNIFORM2FPROC uniform2f = load<PFNGLUNIFORM2FPROC>("glUniform2f");
     PFNGLUNIFORM3FPROC uniform3f = load<PFNGLUNIFORM3FPROC>("glUniform3f");
     GLuint program = 0;
@@ -115,6 +116,10 @@ void Shader::stop() const
     activeShader = nullptr;
 }
 const Shader *Shader::active() { return activeShader; }
+void Shader::setInt(const char *name, int value) const
+{
+    impl_->uniform1i(impl_->uniformLocation(impl_->program, name), value);
+}
 void Shader::setFloat(const char *name, float value) const
 {
     impl_->uniform1f(impl_->uniformLocation(impl_->program, name), value);

@@ -16,6 +16,7 @@ public:
 
     void use() const;
     void setFloat(const char *name, float value) const; // Call after use().
+    void setInt(const char *name, int value) const; // Includes texture sampler units.
     void setVec2(const char *name, float x, float y) const;
     void setVec3(const char *name, float x, float y, float z) const;
     static const Shader *active();

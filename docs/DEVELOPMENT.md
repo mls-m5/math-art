@@ -31,6 +31,7 @@ ctest --test-dir build --output-on-failure
 ./build/wonky_grid
 ./build/space_travel
 ./build/isometric_world
+./build/clouds
 ```
 
 Run in a graphical desktop session with OpenGL 2.1 support. CMake FetchContent
@@ -41,7 +42,7 @@ use `-DCMAKE_BUILD_TYPE=Debug` explicitly when debugging.
 
 ## Web build with Podman
 
-The Podman build compiles all five apps with **Emscripten 3.1.74**, runs them
+The Podman build compiles all six apps with **Emscripten 3.1.74**, runs them
 in headless Chromium, and generates real PNG thumbnails for the gallery.
 Only Podman is needed on the host (the `Dockerfile` is Podman-compatible):
 
@@ -65,7 +66,7 @@ podman build --layers --target site --output type=local,dest=dist .
 python3 -m http.server 8080 --directory dist
 ```
 
-`dist/` contains `index.html`, CSS, the five `.html`/`.js`/`.wasm` applications,
+`dist/` contains `index.html`, CSS, the six `.html`/`.js`/`.wasm` applications,
 and `thumbnails/*.png`. Deploy this directory unchanged to a static host.
 Relative URLs support GitHub Pages repository subpaths. No server-side code,
 threads, cross-origin isolation headers, CDN assets, or runtime npm packages
@@ -208,18 +209,40 @@ if a driver accepts vsync without actually blocking. Tests cover both camera
 angles, fixed altitude, orthographic scale, noise continuity, lighting, coverage,
 hidden-wall culling, and invisible column bottoms.
 
+`clouds` renders soft drifting clouds over a blue sky. Three seeded, seamless
+256×256 simplex textures are generated once and blended at different scales
+and velocities in the fragment shader. Nearby density samples approximate
+sun-facing light and soft self-shadow. This is a lightweight layered 2D cloud
+study, not a full volumetric weather simulation; rendering costs nine texture
+lookups per pixel, with no CPU noise generation during normal frames.
+
+- **Space:** pause/resume drift and shape evolution.
+- **W / Wind button:** stop/start drift without resetting cloud positions.
+- **R:** regenerate all three noise textures.
+- **F:** fullscreen.
+
+The CPU-only `simplex_textures` target exposes `noiseart::SimplexTexture` in
+`src/simplex_texture.h`. Sampling wraps a 2D domain onto a 4D torus and evaluates
+GLM simplex noise, giving seamless repetition in both axes. `sample()` returns
+0–1 noise; `rgba()` creates reusable grayscale RGBA8 texture data. Tests check
+seams, smoothness, normalized values, seed reproducibility, and image contents.
+The browser smoke test also verifies that the rendered clouds actually move.
+
 ## Reusable graphics library
 
 The `graphics` CMake target lives in `lib/graphics/`. It handles SDL/OpenGL
 initialization and cleanup, event polling, frame timing, high-DPI viewports,
 aspect-preserving projection, clearing, and presentation. Drawing helpers provide
 lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
-All five programs use this library without direct OpenGL calls. The triangle
+All six programs use this library without direct OpenGL calls. The triangle
 mesh helper also supplies per-vertex local coordinates, a scalar variant, and
 two extra parameters to shaders. `drawableSize()` exposes real pixel dimensions;
 `additiveBlending()` supports luminous effects without app-level OpenGL calls.
 `depthTesting()` enables proper 3D face occlusion; the window requests a 24-bit
-depth buffer and clears it each frame.
+depth buffer and clears it each frame. `graphics::Texture2D` owns RGBA8 textures
+with linear filtering and optional repetition (power-of-two dimensions for
+WebGL 1). Bind textures to units and use `Shader::setInt()` for sampler uniforms;
+destroy textures before their window.
 Windows request 4× MSAA for geometry edges, automatically retrying without
 multisampling if unavailable.
 
