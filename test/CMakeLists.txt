@@ -23,3 +23,7 @@ add_test(NAME terrain_geometry COMMAND terrain_test)
 add_executable(simplex_texture_test simplex_texture_test.cpp)
 target_link_libraries(simplex_texture_test PRIVATE simplex_textures)
 add_test(NAME simplex_textures COMMAND simplex_texture_test)
+
+add_executable(snow_test snow_test.cpp)
+target_link_libraries(snow_test PRIVATE snow_model)
+add_test(NAME snow_geometry COMMAND snow_test)

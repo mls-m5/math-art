@@ -5,7 +5,7 @@ import { readFile, mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = path.resolve(process.argv[2] || 'dist');
-const allApps = ['blumme', 'rays', 'wonky_grid', 'space_travel', 'isometric_world', 'clouds'];
+const allApps = ['blumme', 'rays', 'wonky_grid', 'space_travel', 'isometric_world', 'clouds', 'snowflakes'];
 const apps = process.argv.length > 3 ? process.argv.slice(3) : allApps;
 if (apps.some(app => !allApps.includes(app))) throw new Error('Unknown artwork name');
 const mount = '/art-studies'; // Exercise GitHub Pages-style subpath hosting.
@@ -79,10 +79,39 @@ try {
     // Reveal and exercise the real HTML control rather than synthetic DOM keys.
     await page.evaluate(() => document.body.classList.remove('capture'));
     await page.mouse.move(320, 200);
+    if (app === 'snowflakes') {
+      // Capture starts in snowfall; verify the specimen view before toggling
+      // back to snowfall for the animation/pause checks below.
+      await page.locator('#special').click();
+      await page.waitForTimeout(100);
+    }
     const beforeToggle = await page.locator('#special').getAttribute('aria-pressed');
     await page.locator('#special').click();
     if (await page.locator('#special').getAttribute('aria-pressed') === beforeToggle)
       errors.push('App-specific control did not toggle');
+    if (app === 'snowflakes') {
+      // Back in snowfall: verify that it renders, moves, and freezes when paused.
+      await page.evaluate(() => document.body.classList.add('capture'));
+      let frame = await page.evaluate(() => window.artFrames);
+      await page.waitForFunction(start => window.artFrames >= start + 2, frame);
+      const still = await page.locator('#canvas').screenshot();
+      await page.evaluate(() => Module._art_key(32));
+      frame = await page.evaluate(() => window.artFrames);
+      await page.waitForFunction(start => window.artFrames >= start + 40, frame);
+      await page.evaluate(() => Module._art_key(32));
+      frame = await page.evaluate(() => window.artFrames);
+      await page.waitForFunction(start => window.artFrames >= start + 2, frame);
+      const falling = await page.locator('#canvas').screenshot();
+      if (still.equals(falling)) throw new Error('Snowfall did not animate');
+      const snow = PNG.sync.read(falling);
+      let lit = 0;
+      for (let i = 0; i < snow.data.length; i += 4) if (snow.data[i] > 60) ++lit;
+      if (lit < 500) throw new Error('Snowfall view looks blank');
+      await page.waitForTimeout(200);
+      if (!falling.equals(await page.locator('#canvas').screenshot()))
+        throw new Error('Paused snowfall kept moving');
+      await page.evaluate(() => document.body.classList.remove('capture'));
+    }
     await page.mouse.move(300, 200);
     await page.waitForFunction(() => document.body.classList.contains('ui-idle'));
     await page.mouse.move(301, 200);

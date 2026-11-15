@@ -107,7 +107,15 @@ add_executable(clouds src/clouds.cpp)
 target_include_directories(clouds PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
 target_link_libraries(clouds PRIVATE simplex_textures)
 
-foreach(app IN ITEMS blumme rays wonky_grid space_travel isometric_world clouds)
+add_library(snow_model src/snow.cpp)
+target_include_directories(snow_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(snow_model PUBLIC cxx_std_17)
+target_link_libraries(snow_model PUBLIC graphics_types)
+add_executable(snowflakes src/snowflakes.cpp)
+target_include_directories(snowflakes PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_link_libraries(snowflakes PRIVATE snow_model)
+
+foreach(app IN ITEMS blumme rays wonky_grid space_travel isometric_world clouds snowflakes)
     # SDL2main supplies the platform entry point where SDL requires it.
     if(TARGET SDL2::SDL2main)
         target_link_libraries(${app} PRIVATE SDL2::SDL2main)

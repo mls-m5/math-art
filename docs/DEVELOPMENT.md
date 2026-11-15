@@ -32,6 +32,7 @@ ctest --test-dir build --output-on-failure
 ./build/space_travel
 ./build/isometric_world
 ./build/clouds
+./build/snowflakes
 ```
 
 Run in a graphical desktop session with OpenGL 2.1 support. CMake FetchContent
@@ -42,7 +43,7 @@ use `-DCMAKE_BUILD_TYPE=Debug` explicitly when debugging.
 
 ## Web build with Podman
 
-The Podman build compiles all six apps with **Emscripten 3.1.74**, runs them
+The Podman build compiles all seven apps with **Emscripten 3.1.74**, runs them
 in headless Chromium, and generates real PNG thumbnails for the gallery.
 Only Podman is needed on the host (the `Dockerfile` is Podman-compatible):
 
@@ -69,7 +70,7 @@ podman build --layers --target site --output type=local,dest=dist .
 python3 -m http.server 8080 --directory dist
 ```
 
-`dist/` contains `index.html`, CSS, the six `.html`/`.js`/`.wasm` applications,
+`dist/` contains `index.html`, CSS, the seven `.html`/`.js`/`.wasm` applications,
 and `thumbnails/*.png`. Deploy this directory unchanged to a static host.
 Relative URLs support GitHub Pages repository subpaths. No server-side code,
 threads, cross-origin isolation headers, CDN assets, or runtime npm packages
@@ -246,13 +247,33 @@ white cores, blue gaps, and animated edge noise even with mask drift turned off.
 `uWindTime` moves the silhouettes; independent `uTime` currents advect coarse and
 fine noise in different directions inside them. Space pauses both clocks.
 
+`snowflakes` / **Snowflakes** has two views: a specimen sheet with nine generated
+crystals, and a snowfall scene. Every flake repeats one randomly branched arm
+six times; variants include needles, feathery branches, and hexagonal centers.
+Rounded antialiased strokes reuse the space scene's capsule shader, submitted
+in one batch. No new graphics dependencies or textures are required.
+
+- **V / Snowfall button:** switch between falling snow (default) and specimens.
+- **R:** generate a new set of nine shapes and reset the snowfield.
+- **Space:** pause rotation, drift, and falling motion in both views.
+- **F:** fullscreen.
+
+The snowfall contains 150 particles with depth-dependent sizes, brightness, and
+fall speeds, individual spins, and sinusoidal wind drift. Flakes wrap horizontally
+with seam duplicates and respawn above the screen after passing below it.
+`src/snow.h` exposes seeded geometry generation, particle simulation, and capsule
+meshes independently of SDL/OpenGL. Tests check sixfold symmetry, reproducibility,
+variation, finite meshes, rotation, falling direction, and particle recycling.
+Browser tests exercise both views, animation, and pause behavior. The gallery
+thumbnail shows the default snowfall view.
+
 ## Reusable graphics library
 
 The `graphics` CMake target lives in `lib/graphics/`. It handles SDL/OpenGL
 initialization and cleanup, event polling, frame timing, high-DPI viewports,
 aspect-preserving projection, clearing, and presentation. Drawing helpers provide
 lines, circle outlines, filled disks, polygon outlines, and convex triangle fans.
-All six programs use this library without direct OpenGL calls. The triangle
+All seven programs use this library without direct OpenGL calls. The triangle
 mesh helper also supplies per-vertex local coordinates, a scalar variant, and
 two extra parameters to shaders. `drawableSize()` exposes real pixel dimensions;
 `additiveBlending()` supports luminous effects without app-level OpenGL calls.
